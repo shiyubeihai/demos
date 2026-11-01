@@ -1,2 +1,59 @@
-# demos
-Demos for multiple projects and apps. Update on timely basis. 
+# Demos · 免费试玩
+
+各个小作品的试用版集合，用于 GitHub Pages 托管。试玩免费，完整版为付费产品。
+
+## 当前内容
+
+| 目录 | 作品 | 说明 |
+|---|---|---|
+| `italiano2000-demo/` | Italiano2000 消消乐 | 200 词试玩版，意大利语 A1–B1 |
+| `index.html` | 目录页 | 自动列出所有试玩作品 |
+
+## 发布到 GitHub Pages
+
+1. 把本目录推到仓库 `demos` 的 `main` 分支。
+2. 打开仓库 **Settings → Pages**。
+3. Source 选 **Deploy from a branch**，Branch 选 `main` / `(root)`，保存。
+4. 等 1–2 分钟，访问：
+   `https://<你的用户名>.github.io/demos/`
+5. 试玩版地址：
+   `https://<你的用户名>.github.io/demos/italiano2000-demo/`
+
+> 免费账户的 GitHub Pages 需要仓库为 **Public**。公开仓库只放试玩子集，不要放完整词库和付费音频。
+
+## 新增一个试玩版
+
+1. 新建目录，例如 `deutsch1000-demo/`。
+2. 放入单文件 `index.html`（相对路径引用资源，避免绝对路径）。
+3. 在根目录 `index.html` 的卡片列表里加一张卡片，链接到该目录。
+4. 推送后自动生效。
+
+## 购买链接
+
+试玩版侧栏有「完整版」卡片，默认隐藏购买按钮。上架面包多后，在试玩 HTML 里找到：
+
+```js
+const BUY_URL = ""; // TODO: 上架后填入面包多作品链接
+```
+
+填成你的作品链接即可，例如 `https://mbd.pub/o/xxxx`。
+
+## 不要提交到公开仓库
+
+- 完整词库（2085 词）与完整版 HTML
+- 预生成的音频精灵（`*.mp3` / `*.m4a`）
+- Anki 词库、付费 PDF、授权文件
+- 任何包含买家信息或订单号的版本
+
+`.gitignore` 已经拦截常见的大文件类型，但提交前仍建议 `git status` 检查一遍。
+
+## 授权
+
+试玩版采用「免费试玩」授权：可自由访问和分享链接，但禁止转售、拆分词库或用于商业再发布。详见 `LICENSE.md`。
+
+完整版为付费产品，购买后获得个人使用授权，具体条款以商品页为准。
+
+## 合规提醒
+
+- 不要在产品名或文案中使用「多邻国」等第三方商标，也不要声称官方关联。
+- 词表请以原创整理的方式呈现，不要复制课程原句或音频。

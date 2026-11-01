@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Demos · 免费试玩</title>
+<style>
+  :root{
+    --bg:#FBF7EE; --panel:#FFFDF8; --line:#E7DFCF; --text:#2C2A26; --muted:#8C8577;
+    --blue:#2F6DB5;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; min-height:100vh; color:var(--text);
+    background:radial-gradient(1100px 620px at 50% -10%, #FFFDF7 0%, var(--bg) 62%);
+    font-family:"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    display:flex; flex-direction:column;
+  }
+  header{width:min(100%,920px); margin:0 auto; padding:40px 20px 8px}
+  h1{font-size:26px; margin:0; letter-spacing:.5px}
+  h1 span{color:var(--blue)}
+  header p{color:var(--muted); font-size:14px; margin:10px 0 0; line-height:1.7}
+  main{width:min(100%,920px); margin:0 auto; padding:22px 20px 48px; flex:1}
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:16px}
+  .card{
+    background:var(--panel); border:1px solid var(--line); border-radius:14px;
+    padding:20px; display:flex; flex-direction:column; gap:10px;
+    box-shadow:0 10px 26px rgba(90,75,50,.06);
+  }
+  .card h2{font-size:18px; margin:0}
+  .card .tag{display:inline-block; align-self:flex-start; font-size:11px; color:var(--blue);
+    border:1px solid rgba(47,109,181,.35); background:rgba(47,109,181,.07);
+    border-radius:999px; padding:3px 9px}
+  .card p{margin:0; color:var(--muted); font-size:13px; line-height:1.65; flex:1}
+  .card a.btn{
+    align-self:flex-start; display:inline-block; margin-top:4px;
+    background:var(--blue); color:#fff; text-decoration:none;
+    padding:9px 20px; border-radius:10px; font-size:14px; font-weight:600;
+  }
+  .card a.btn:hover{filter:brightness(1.08)}
+  .card.soon{opacity:.65; border-style:dashed; box-shadow:none}
+  .card.soon .btn{background:#CFC6B6; cursor:default}
+  footer{width:min(100%,920px); margin:0 auto; padding:0 20px 36px; color:var(--muted); font-size:12px; line-height:1.8}
+</style>
+</head>
+<body>
+<header>
+  <h1><span>Demos</span> · 免费试玩</h1>
+  <p>这里放各个小作品的试用版。试玩免费，完整版为付费产品。</p>
+</header>
+<main>
+  <div class="grid">
+    <div class="card">
+      <span class="tag">意大利语 · A1–B1</span>
+      <h2>Italiano2000 消消乐</h2>
+      <p>输入落下的意大利语单词即可消除。<br>试玩版含 200 个精选词，带计时、连击和意语朗读；完整版 2085 词。</p>
+      <a class="btn" href="italiano2000-demo/">开始试玩</a>
+    </div>
+    <div class="card soon">
+      <span class="tag">敬请期待</span>
+      <h2>更多试玩</h2>
+      <p>连连看试玩版、其他语言的小作品会陆续放到这里。</p>
+      <span class="btn">即将上线</span>
+    </div>
+  </div>
+</main>
+<footer>
+  试玩版可自由分享链接，但请勿转售或拆分词库。完整版购买后获得个人使用授权。
+</footer>
+</body>
+</html>
