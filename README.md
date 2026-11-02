@@ -6,7 +6,8 @@
 
 | 目录 | 作品 | 说明 |
 |---|---|---|
-| `italiano2000-demo/` | Italiano2000 消消乐 | 200 词试玩版，意大利语 A1–B1 |
+| `italiano2000-demo/` | Italiano2000 消消乐 | 200 词打字试玩版，意大利语 A1–B1 |
+| `italiano2000-matching-demo/` | Italiano2000 连连看 | 200 词试玩版，三模式 + 背景音乐，手机可玩 |
 | `index.html` | 目录页 | 自动列出所有试玩作品 |
 
 ## 发布到 GitHub Pages
@@ -17,7 +18,8 @@
 4. 等 1–2 分钟，访问：
    `https://<你的用户名>.github.io/demos/`
 5. 试玩版地址：
-   `https://<你的用户名>.github.io/demos/italiano2000-demo/`
+   - 打字：`https://<你的用户名>.github.io/demos/italiano2000-demo/`
+   - 连连看：`https://<你的用户名>.github.io/demos/italiano2000-matching-demo/`
 
 > 免费账户的 GitHub Pages 需要仓库为 **Public**。公开仓库只放试玩子集，不要放完整词库和付费音频。
 

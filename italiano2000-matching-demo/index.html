@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Italiano2000 连连看 · 试玩版</title>
+<style>
+  :root{
+    --bg:#FBF7EE; --panel:#FFFDF8; --line:#E3DAC8; --ink:#2C2A26; --muted:#8C8577;
+    --blue:#6FA3D2; --green:#2E8B57;
+    --orange:#D06A12; --brown:#7A4E28;
+    --noun:#E8402A; --verb:#4E7FBF; --adj:#E8871E; --art:#2E8B57;
+    --adv:#7B4FB5; --pron:#2E8B57; --conj:#B98A7E; --num:#C99A16; --other:#8E8A80;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(900px 500px at 50% -10%, #FFFDF7 0%, var(--bg) 60%);
+    color:var(--ink); font-family:"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    min-height:100vh; padding:14px 12px 22px;
+  }
+  .wrap{max-width:760px; margin:0 auto}
+
+  header{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:10px}
+  h1{font-size:18px; margin:0; color:var(--orange); letter-spacing:.5px; flex:1 1 100%}
+  h1 span{font-size:11px; color:var(--muted); font-weight:400; margin-left:6px}
+  h1 .brand{color:#2F6DB5; font-size:inherit; font-weight:700; margin-left:0}
+
+  .modes{display:flex; gap:6px; flex:1 1 auto; flex-wrap:wrap}
+  .mode{
+    border:1px solid var(--line); background:var(--panel); color:var(--muted);
+    border-radius:999px; padding:7px 12px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .mode[data-mode="word"]{color:#C46A12; border-color:#F0C9A0}
+  .mode[data-mode="word"].on{background:#E8871E; border-color:#E8871E; color:#fff}
+  .mode[data-mode="gram"]{color:#2E8B57; border-color:#B7D8C2}
+  .mode[data-mode="gram"].on{background:#2E8B57; border-color:#2E8B57; color:#fff}
+  .mode[data-mode="expr"]{color:#7A4E28; border-color:#D9C3AC}
+  .mode[data-mode="expr"].on{background:#8A5A2B; border-color:#8A5A2B; color:#fff}
+
+  .stats{display:flex; flex-wrap:wrap; gap:8px 12px; font-size:12px; color:var(--muted)}
+  .stats b{color:var(--ink); font-size:14px; margin-left:3px}
+  #score{color:var(--orange)}
+  #combo{color:var(--green)}
+  #acc{color:var(--brown)}
+
+  .hint{font-size:12.5px; color:var(--muted); margin:4px 0 10px; min-height:18px}
+
+  .board{
+    position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:10px 14px; padding:6px 2px;
+  }
+  #lines{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible}
+  .col{display:flex; flex-direction:column; gap:9px; min-width:0}
+
+  .tile{
+    width:100%; min-height:54px; display:flex; align-items:center;
+    padding:10px 12px; border-radius:14px; cursor:pointer;
+    background:var(--panel); border:1px solid var(--line);
+    font-family:inherit; font-size:clamp(14px,4vw,17px); line-height:1.25;
+    color:var(--ink); text-align:left; min-width:0;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+    transition:transform .12s, box-shadow .12s, border-color .12s, background .12s, opacity .2s;
+    box-shadow:0 2px 6px rgba(120,100,60,.06);
+  }
+  .tile:active{transform:scale(.985)}
+  .tile.it{font-weight:600; border-left:4px solid var(--c, var(--other))}
+  .tile.zh{color:#4a4438}
+  .tile.gram{font-weight:700; color:var(--green); border-left:4px solid var(--green)}
+  .tile.expr{font-weight:600; color:#6B4A2F; border-left:4px solid #A9C9A4; background:#FBFDF9}
+  .tile.has-sub{flex-direction:column; align-items:flex-start; justify-content:center; gap:1px; padding-top:7px; padding-bottom:7px}
+  .tile .sub{font-size:10.5px; font-weight:500; color:#8C8577; line-height:1.1}
+  .tile.sel{border-color:var(--blue); box-shadow:0 0 0 3px rgba(111,163,210,.25)}
+  .tile.ok{border-color:var(--green); background:#F1F8F3}
+  .tile.bad{animation:shake .35s}
+  .tile.gone{opacity:0; transform:scale(.94); pointer-events:none}
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-5px)}
+    40%{transform:translateX(5px)}
+    60%{transform:translateX(-3px)}
+    80%{transform:translateX(3px)}
+  }
+
+  .bar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px}
+  .progress{font-size:12.5px; color:var(--muted)}
+  .progress b{color:var(--orange)}
+  .restart{
+    border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;
+  }
+  .restart:hover{background:#F4EEDF}
+
+  .done{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(.9);
+    background:var(--green); color:#fff; padding:14px 22px; border-radius:14px;
+    font-size:16px; font-weight:700; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:9;
+  }
+  .done.show{opacity:1; transform:translate(-50%,-50%) scale(1)}
+
+  .bar-actions{display:flex; gap:8px}
+
+  .overlay{
+    position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center;
+    padding:18px; background:rgba(43,37,25,.46);
+  }
+  .overlay.show{display:flex}
+  .modal{
+    width:min(100%,360px); max-height:92vh; overflow:auto; text-align:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    padding:20px 18px 14px; box-shadow:0 20px 60px rgba(40,30,10,.28);
+  }
+  .modal h2{margin:8px 0 4px; font-size:20px; color:var(--orange)}
+  .modal .sub{margin:0 0 14px; font-size:12.5px; color:var(--muted); line-height:1.5}
+  .badge{
+    width:58px; height:58px; margin:0 auto; border-radius:50%;
+    display:flex; align-items:center; justify-content:center;
+    background:linear-gradient(135deg,#F6C15A,#E8871E); color:#fff;
+    font-size:30px; line-height:1; box-shadow:0 6px 16px rgba(232,135,30,.28);
+  }
+  .reward-score{font-size:13px; color:var(--muted); margin:2px 0 16px}
+  .reward-score b{font-size:30px; color:var(--orange); vertical-align:-3px; margin:0 4px}
+  .field{text-align:left; margin:0 0 4px}
+  .field label{display:block; font-size:12px; color:var(--muted); margin-bottom:5px}
+  .field input{
+    width:100%; border:1px solid var(--line); background:#fff; border-radius:10px;
+    padding:10px 12px; font:inherit; font-size:15px; color:var(--ink); outline:none;
+  }
+  .field input:focus{border-color:var(--orange); box-shadow:0 0 0 3px rgba(232,135,30,.14)}
+  .modal-actions{display:flex; gap:8px; margin-top:12px}
+  .modal-actions button{flex:1; border-radius:10px; padding:10px 12px; font:inherit; font-size:13.5px; font-weight:700; cursor:pointer}
+  .primary{border:1px solid var(--green); background:var(--green); color:#fff}
+  .primary:hover{filter:brightness(.96)}
+  .ghost{border:1px solid var(--line); background:var(--panel); color:var(--ink)}
+  .ghost:hover{background:#F4EEDF}
+  .rank-list{display:flex; flex-direction:column; gap:5px; margin:10px 0 0; text-align:left}
+  .rank-row{display:flex; align-items:center; gap:10px; padding:5px 9px; border-radius:10px; background:#FBF7EE; border:1px solid transparent}
+  .rank-row.r1{background:#FFF4D6; border-color:#E9C46A}
+  .rank-row.r2{background:#F3F3F1; border-color:#D8D5CE}
+  .rank-row.r3{background:#FBEFE4; border-color:#E0B990}
+  .rank{width:24px; text-align:center; font-weight:800; font-size:14px; color:var(--muted)}
+  .r1 .rank{color:#B8860B}
+  .r2 .rank{color:#7C7C78}
+  .r3 .rank{color:#A9662E}
+  .who{flex:1; min-width:0}
+  .who b{display:block; font-size:13.5px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis}
+  .who small{font-size:10.5px; color:var(--muted)}
+  .pts{font-size:15px; font-weight:800; color:var(--orange)}
+  .empty{padding:22px 8px; font-size:13px; color:var(--muted); line-height:1.6}
+
+  @media (max-width:420px){
+    body{padding:10px 8px 18px}
+    .tile{min-height:50px; padding:8px 9px; border-radius:12px}
+    .tile.has-sub{min-height:56px}
+    .stats{gap:9px}
+  }
+
+  .demo-note{font-size:11.5px;color:var(--muted);margin-top:6px}
+  .demo-note b{color:#2F6DB5}
+  .buy{background:#2F6DB5;border-color:#2F6DB5;color:#fff}
+  .buy:hover{background:#2A5F9E}
+  /* 背景音乐控件 */
+  .music-ctl{display:flex;align-items:center;gap:6px;background:var(--panel);
+    border:1px solid var(--line);border-radius:999px;padding:3px 8px 3px 3px}
+  .music-ctl button{border:none;background:#EFE7D6;color:#5C5344;border-radius:999px;
+    padding:5px 10px;font-size:11.5px;cursor:pointer;font-weight:600;line-height:1}
+  .music-ctl button.on{background:#2F6DB5;color:#fff}
+  .music-ctl input[type=range]{width:58px;accent-color:#2F6DB5}
+  .bar-actions{flex-wrap:wrap;justify-content:flex-end;align-items:center}
+  @media (max-width:420px){.music-ctl input[type=range]{width:46px}.bar{gap:8px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="brand">Italiano2000</span> 连连看 <span>试玩版 · 200 词</span></h1>
+    <div class="modes">
+      <button class="mode on" data-mode="word">词义配对</button>
+      <button class="mode" data-mode="gram">语法搭配</button>
+      <button class="mode" data-mode="expr">固定表达</button>
+    </div>
+    <div class="stats">
+      <div>得分<b id="score">0</b></div>
+      <div>连击<b id="combo">0</b></div>
+      <div>正确率<b id="acc">—</b></div>
+    </div>
+  </header>
+
+  <div class="hint" id="hint">把意大利语单词和它的中文意思配对。</div>
+  <div class="demo-note">试玩版含 <b>200</b> 词 · 完整版 <b>1032</b> 词，含全部固定表达</div>
+
+  <div class="board" id="board">
+    <svg id="lines"></svg>
+    <div class="col" id="left"></div>
+    <div class="col" id="right"></div>
+  </div>
+
+  <div class="bar">
+    <div class="progress">本组 <b id="matched">0</b> / <span id="total">6</span> · 第 <b id="round">1</b> 组</div>
+    <div class="bar-actions">
+      <div class="music-ctl" id="musicCtl" title="背景音乐：Santa Lucia / 'O Sole Mio / Funiculì, Funiculà（公有领域旋律）">
+        <button id="musicBtn" class="on" aria-pressed="true" aria-label="背景音乐开关">♪ 开</button>
+        <input id="musicVol" type="range" min="0" max="100" value="55" aria-label="背景音乐音量">
+      </div>
+      <a class="restart buy" id="buyLink" href="#" target="_blank" rel="noopener" style="display:none">获取完整版</a>
+      <button class="restart" id="boardBtn">排行榜</button>
+      <button class="restart" id="restart">重新开始</button>
+    </div>
+  </div>
+</div>
+<div class="done" id="done"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true">
+    <div id="rewardView">
+      <div class="badge">★</div>
+      <h2 id="modalTitle">恭喜，你完成了 5 组！</h2>
+      <p class="sub" id="rewardSub"></p>
+      <div class="reward-score"><b id="rewardScore">0</b> 分</div>
+      <div class="field">
+        <label for="playerId">留下你的 ID（可留空）</label>
+        <input id="playerId" maxlength="16" placeholder="例如：Marco" autocomplete="off">
+      </div>
+      <div class="modal-actions">
+        <button class="primary" id="recordBtn">记录成绩</button>
+        <button class="ghost" id="skipBtn">先不记</button>
+      </div>
+    </div>
+    <div id="boardView" hidden>
+      <h2>积分排行榜</h2>
+      <p class="sub">本机前 10 名 · 每个 ID 只保留最高分</p>
+      <div class="rank-list" id="rankList"></div>
+      <div class="modal-actions">
+        <button class="primary" id="closeBoard">关闭</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+const WORDS = [{"it":"uomo","zh":"男人","pos":"名词","group":"人与家庭"},{"it":"donna","zh":"女人","pos":"名词","group":"人与家庭"},{"it":"ragazzo","zh":"男孩","pos":"名词","group":"人与家庭"},{"it":"ragazza","zh":"女孩","pos":"名词","group":"人与家庭"},{"it":"bambino","zh":"小孩","pos":"名词","group":"人与家庭"},{"it":"persona","zh":"人","pos":"名词","group":"人与家庭"},{"it":"amico","zh":"朋友","pos":"名词","group":"人与家庭"},{"it":"famiglia","zh":"家庭","pos":"名词","group":"人与家庭"},{"it":"genitori","zh":"父母","pos":"名词","group":"人与家庭"},{"it":"madre","zh":"母亲","pos":"名词","group":"人与家庭"},{"it":"padre","zh":"父亲","pos":"名词","group":"人与家庭"},{"it":"mamma","zh":"妈妈","pos":"名词","group":"人与家庭"},{"it":"papà","zh":"爸爸","pos":"名词","group":"人与家庭"},{"it":"figlio","zh":"儿子","pos":"名词","group":"人与家庭"},{"it":"figlia","zh":"女儿","pos":"名词","group":"人与家庭"},{"it":"fratello","zh":"兄弟","pos":"名词","group":"人与家庭"},{"it":"sorella","zh":"姐妹","pos":"名词","group":"人与家庭"},{"it":"nonno","zh":"爷爷","pos":"名词","group":"人与家庭"},{"it":"nonna","zh":"奶奶","pos":"名词","group":"人与家庭"},{"it":"marito","zh":"丈夫","pos":"名词","group":"人与家庭"},{"it":"moglie","zh":"妻子","pos":"名词","group":"人与家庭"},{"it":"zio","zh":"叔叔","pos":"名词","group":"人与家庭"},{"it":"zia","zh":"姑姑","pos":"名词","group":"人与家庭"},{"it":"cugino","zh":"堂兄弟","pos":"名词","group":"人与家庭"},{"it":"nipote","zh":"侄子","pos":"名词","group":"人与家庭"},{"it":"suoceri","zh":"公婆","pos":"名词","group":"人与家庭"},{"it":"vicino","zh":"邻居","pos":"名词","group":"人与家庭"},{"it":"corpo","zh":"身体","pos":"名词","group":"身体与健康"},{"it":"testa","zh":"头","pos":"名词","group":"身体与健康"},{"it":"occhio","zh":"眼睛","pos":"名词","group":"身体与健康"},{"it":"naso","zh":"鼻子","pos":"名词","group":"身体与健康"},{"it":"bocca","zh":"嘴","pos":"名词","group":"身体与健康"},{"it":"orecchio","zh":"耳朵","pos":"名词","group":"身体与健康"},{"it":"dente","zh":"牙齿","pos":"名词","group":"身体与健康"},{"it":"collo","zh":"脖子","pos":"名词","group":"身体与健康"},{"it":"spalla","zh":"肩膀","pos":"名词","group":"身体与健康"},{"it":"braccio","zh":"手臂","pos":"名词","group":"身体与健康"},{"it":"mano","zh":"手","pos":"名词","group":"身体与健康"},{"it":"dito","zh":"手指","pos":"名词","group":"身体与健康"},{"it":"gamba","zh":"腿","pos":"名词","group":"身体与健康"},{"it":"piede","zh":"脚","pos":"名词","group":"身体与健康"},{"it":"schiena","zh":"背","pos":"名词","group":"身体与健康"},{"it":"stomaco","zh":"胃","pos":"名词","group":"身体与健康"},{"it":"cuore","zh":"心脏","pos":"名词","group":"身体与健康"},{"it":"sangue","zh":"血","pos":"名词","group":"身体与健康"},{"it":"pelle","zh":"皮肤","pos":"名词","group":"身体与健康"},{"it":"salute","zh":"健康","pos":"名词","group":"身体与健康"},{"it":"malattia","zh":"疾病","pos":"名词","group":"身体与健康"},{"it":"raffreddore","zh":"感冒","pos":"名词","group":"身体与健康"},{"it":"febbre","zh":"发烧","pos":"名词","group":"身体与健康"},{"it":"tosse","zh":"咳嗽","pos":"名词","group":"身体与健康"},{"it":"dolore","zh":"疼痛","pos":"名词","group":"身体与健康"},{"it":"medicina","zh":"药","pos":"名词","group":"身体与健康"},{"it":"medico","zh":"医生","pos":"名词","group":"身体与健康"},{"it":"infermiere","zh":"护士","pos":"名词","group":"身体与健康"},{"it":"ambulanza","zh":"救护车","pos":"名词","group":"身体与健康"},{"it":"acqua","zh":"水","pos":"名词","group":"食物与饮品"},{"it":"pane","zh":"面包","pos":"名词","group":"食物与饮品"},{"it":"latte","zh":"牛奶","pos":"名词","group":"食物与饮品"},{"it":"caffè","zh":"咖啡","pos":"名词","group":"食物与饮品"},{"it":"cappuccino","zh":"卡布奇诺","pos":"名词","group":"食物与饮品"},{"it":"tè","zh":"茶","pos":"名词","group":"食物与饮品"},{"it":"succo","zh":"果汁","pos":"名词","group":"食物与饮品"},{"it":"vino","zh":"葡萄酒","pos":"名词","group":"食物与饮品"},{"it":"birra","zh":"啤酒","pos":"名词","group":"食物与饮品"},{"it":"pizza","zh":"披萨","pos":"名词","group":"食物与饮品"},{"it":"pasta","zh":"意面","pos":"名词","group":"食物与饮品"},{"it":"risotto","zh":"烩饭","pos":"名词","group":"食物与饮品"},{"it":"panino","zh":"三明治","pos":"名词","group":"食物与饮品"},{"it":"formaggio","zh":"奶酪","pos":"名词","group":"食物与饮品"},{"it":"burro","zh":"黄油","pos":"名词","group":"食物与饮品"},{"it":"uova","zh":"鸡蛋","pos":"名词","group":"食物与饮品"},{"it":"pollo","zh":"鸡肉","pos":"名词","group":"食物与饮品"},{"it":"pesce","zh":"鱼","pos":"名词","group":"食物与饮品"},{"it":"carne","zh":"肉","pos":"名词","group":"食物与饮品"},{"it":"verdura","zh":"蔬菜","pos":"名词","group":"食物与饮品"},{"it":"frutta","zh":"水果","pos":"名词","group":"食物与饮品"},{"it":"mela","zh":"苹果","pos":"名词","group":"食物与饮品"},{"it":"arancia","zh":"橙子","pos":"名词","group":"食物与饮品"},{"it":"banana","zh":"香蕉","pos":"名词","group":"食物与饮品"},{"it":"fragola","zh":"草莓","pos":"名词","group":"食物与饮品"},{"it":"pomodoro","zh":"西红柿","pos":"名词","group":"食物与饮品"},{"it":"patata","zh":"土豆","pos":"名词","group":"食物与饮品"},{"it":"insalata","zh":"沙拉","pos":"名词","group":"食物与饮品"},{"it":"zucchero","zh":"糖","pos":"名词","group":"食物与饮品"},{"it":"sale","zh":"盐","pos":"名词","group":"食物与饮品"},{"it":"olio","zh":"油","pos":"名词","group":"食物与饮品"},{"it":"gelato","zh":"冰淇淋","pos":"名词","group":"食物与饮品"},{"it":"dolce","zh":"甜点","pos":"名词","group":"食物与饮品"},{"it":"torta","zh":"蛋糕","pos":"名词","group":"食物与饮品"},{"it":"biscotti","zh":"饼干","pos":"名词","group":"食物与饮品"},{"it":"colazione","zh":"早餐","pos":"名词","group":"食物与饮品"},{"it":"pranzo","zh":"午餐","pos":"名词","group":"食物与饮品"},{"it":"cena","zh":"晚餐","pos":"名词","group":"食物与饮品"},{"it":"bar","zh":"咖啡馆","pos":"名词","group":"食物与饮品"},{"it":"menù","zh":"菜单","pos":"名词","group":"食物与饮品"},{"it":"cameriere","zh":"服务员","pos":"名词","group":"食物与饮品"},{"it":"conto","zh":"账单","pos":"名词","group":"食物与饮品"},{"it":"tavolo","zh":"桌子","pos":"名词","group":"食物与饮品"},{"it":"bicchiere","zh":"杯子","pos":"名词","group":"食物与饮品"},{"it":"piatto","zh":"盘子","pos":"名词","group":"食物与饮品"},{"it":"forchetta","zh":"叉子","pos":"名词","group":"食物与饮品"},{"it":"coltello","zh":"刀","pos":"名词","group":"食物与饮品"},{"it":"cucchiaio","zh":"勺子","pos":"名词","group":"食物与饮品"},{"it":"vestiti","zh":"衣服","pos":"名词","group":"服饰"},{"it":"maglietta","zh":"T恤","pos":"名词","group":"服饰"},{"it":"camicia","zh":"衬衫","pos":"名词","group":"服饰"},{"it":"pantaloni","zh":"裤子","pos":"名词","group":"服饰"},{"it":"gonna","zh":"裙子","pos":"名词","group":"服饰"},{"it":"vestito","zh":"连衣裙","pos":"名词","group":"服饰"},{"it":"maglione","zh":"毛衣","pos":"名词","group":"服饰"},{"it":"giacca","zh":"夹克","pos":"名词","group":"服饰"},{"it":"cappotto","zh":"大衣","pos":"名词","group":"服饰"},{"it":"scarpe","zh":"鞋","pos":"名词","group":"服饰"},{"it":"stivali","zh":"靴子","pos":"名词","group":"服饰"},{"it":"calzini","zh":"袜子","pos":"名词","group":"服饰"},{"it":"cappello","zh":"帽子","pos":"名词","group":"服饰"},{"it":"sciarpa","zh":"围巾","pos":"名词","group":"服饰"},{"it":"guanti","zh":"手套","pos":"名词","group":"服饰"},{"it":"cintura","zh":"腰带","pos":"名词","group":"服饰"},{"it":"borsa","zh":"包","pos":"名词","group":"服饰"},{"it":"occhiali","zh":"眼镜","pos":"名词","group":"服饰"},{"it":"orologio","zh":"手表","pos":"名词","group":"服饰"},{"it":"portafoglio","zh":"钱包","pos":"名词","group":"服饰"},{"it":"stanza","zh":"房间","pos":"名词","group":"住房与家具"},{"it":"camera","zh":"卧室","pos":"名词","group":"住房与家具"},{"it":"soggiorno","zh":"客厅","pos":"名词","group":"住房与家具"},{"it":"cucina","zh":"厨房","pos":"名词","group":"住房与家具"},{"it":"balcone","zh":"阳台","pos":"名词","group":"住房与家具"},{"it":"piano","zh":"楼层","pos":"名词","group":"住房与家具"},{"it":"ascensore","zh":"电梯","pos":"名词","group":"住房与家具"},{"it":"letto","zh":"床","pos":"名词","group":"住房与家具"},{"it":"sedia","zh":"椅子","pos":"名词","group":"住房与家具"},{"it":"divano","zh":"沙发","pos":"名词","group":"住房与家具"},{"it":"porta","zh":"门","pos":"名词","group":"住房与家具"},{"it":"finestra","zh":"窗户","pos":"名词","group":"住房与家具"},{"it":"chiave","zh":"钥匙","pos":"名词","group":"住房与家具"},{"it":"luce","zh":"灯","pos":"名词","group":"住房与家具"},{"it":"frigorifero","zh":"冰箱","pos":"名词","group":"住房与家具"},{"it":"lavatrice","zh":"洗衣机","pos":"名词","group":"住房与家具"},{"it":"affitto","zh":"房租","pos":"名词","group":"住房与家具"},{"it":"città","zh":"城市","pos":"名词","group":"城市与场所"},{"it":"paese","zh":"国家","pos":"名词","group":"城市与场所"},{"it":"strada","zh":"路","pos":"名词","group":"城市与场所"},{"it":"via","zh":"街","pos":"名词","group":"城市与场所"},{"it":"piazza","zh":"广场","pos":"名词","group":"城市与场所"},{"it":"centro","zh":"市中心","pos":"名词","group":"城市与场所"},{"it":"quartiere","zh":"街区","pos":"名词","group":"城市与场所"},{"it":"supermercato","zh":"超市","pos":"名词","group":"城市与场所"},{"it":"posta","zh":"邮局","pos":"名词","group":"城市与场所"},{"it":"farmacia","zh":"药店","pos":"名词","group":"城市与场所"},{"it":"scuola","zh":"学校","pos":"名词","group":"城市与场所"},{"it":"università","zh":"大学","pos":"名词","group":"城市与场所"},{"it":"parco","zh":"公园","pos":"名词","group":"城市与场所"},{"it":"bagno","zh":"厕所","pos":"名词","group":"城市与场所"},{"it":"fermata","zh":"公交站","pos":"名词","group":"城市与场所"},{"it":"angolo","zh":"街角","pos":"名词","group":"城市与场所"},{"it":"semaforo","zh":"红绿灯","pos":"名词","group":"城市与场所"},{"it":"ristorante","zh":"餐厅","pos":"名词","group":"建筑与设施"},{"it":"negozio","zh":"商店","pos":"名词","group":"建筑与设施"},{"it":"mercato","zh":"市场","pos":"名词","group":"建筑与设施"},{"it":"banca","zh":"银行","pos":"名词","group":"建筑与设施"},{"it":"ospedale","zh":"医院","pos":"名词","group":"建筑与设施"},{"it":"ufficio","zh":"办公室","pos":"名词","group":"建筑与设施"},{"it":"stazione","zh":"车站","pos":"名词","group":"建筑与设施"},{"it":"aeroporto","zh":"机场","pos":"名词","group":"建筑与设施"},{"it":"albergo","zh":"旅馆","pos":"名词","group":"建筑与设施"},{"it":"chiesa","zh":"教堂","pos":"名词","group":"建筑与设施"},{"it":"museo","zh":"博物馆","pos":"名词","group":"建筑与设施"},{"it":"cinema","zh":"电影院","pos":"名词","group":"建筑与设施"},{"it":"teatro","zh":"剧院","pos":"名词","group":"建筑与设施"},{"it":"biblioteca","zh":"图书馆","pos":"名词","group":"建筑与设施"},{"it":"giardino","zh":"花园","pos":"名词","group":"建筑与设施"},{"it":"casa","zh":"房子","pos":"名词","group":"建筑与设施"},{"it":"palazzo","zh":"宫殿/大楼","pos":"名词","group":"建筑与设施"},{"it":"castello","zh":"城堡","pos":"名词","group":"建筑与设施"},{"it":"torre","zh":"塔","pos":"名词","group":"建筑与设施"},{"it":"ponte","zh":"桥","pos":"名词","group":"建筑与设施"},{"it":"cattedrale","zh":"大教堂","pos":"名词","group":"建筑与设施"},{"it":"tempio","zh":"寺庙","pos":"名词","group":"建筑与设施"},{"it":"moschea","zh":"清真寺","pos":"名词","group":"建筑与设施"},{"it":"sinagoga","zh":"犹太教堂","pos":"名词","group":"建筑与设施"},{"it":"stadio","zh":"体育场","pos":"名词","group":"建筑与设施"},{"it":"grattacielo","zh":"摩天楼","pos":"名词","group":"建筑与设施"},{"it":"fattoria","zh":"农场","pos":"名词","group":"建筑与设施"},{"it":"villaggio","zh":"村庄","pos":"名词","group":"建筑与设施"},{"it":"pagoda","zh":"宝塔","pos":"名词","group":"建筑与设施"},{"it":"padiglione","zh":"亭子","pos":"名词","group":"建筑与设施"},{"it":"fontana","zh":"喷泉","pos":"名词","group":"建筑与设施"},{"it":"muro","zh":"墙","pos":"名词","group":"建筑与设施"},{"it":"cancello","zh":"大门","pos":"名词","group":"建筑与设施"},{"it":"cortile","zh":"庭院","pos":"名词","group":"建筑与设施"},{"it":"scala","zh":"楼梯","pos":"名词","group":"建筑与设施"},{"it":"villa","zh":"别墅","pos":"名词","group":"建筑与设施"},{"it":"capanna","zh":"茅屋","pos":"名词","group":"建筑与设施"},{"it":"basilica","zh":"大殿","pos":"名词","group":"建筑与设施"},{"it":"abbazia","zh":"修道院","pos":"名词","group":"建筑与设施"},{"it":"anfiteatro","zh":"圆形剧场","pos":"名词","group":"建筑与设施"},{"it":"acquedotto","zh":"输水道","pos":"名词","group":"建筑与设施"},{"it":"municipio","zh":"市政厅","pos":"名词","group":"建筑与设施"}];
+const B_ROUNDS = [[["il","libro"],["lo","studente"],["la","casa"],["l'","amico"],["i","libri"],["gli","studenti"],["le","case"]],[["un","panino"],["uno","studente"],["una","mela"],["un'","amica"],["dei","biscotti"],["delle","mele"]],[["al","mare","a + il"],["alla","stazione","a + la"],["allo","stadio","a + lo"],["all'","università","a + l'"],["ai","bambini","a + i"],["agli","amici","a + gli"],["alle","ragazze","a + le"]],[["nel","cassetto","in + il"],["nella","borsa","in + la"],["nello","zaino","in + lo"],["nell'","armadio","in + l'"],["nei","negozi","in + i"],["negli","uffici","in + gli"],["nelle","case","in + le"]],[["del","pane","di + il"],["della","carne","di + la"],["dello","zucchero","di + lo"],["dell'","olio","di + l'"],["dei","biscotti","di + i"],["degli","amici","di + gli"],["delle","mele","di + le"]],[["dal","medico","da + il"],["dalla","stazione","da + la"],["dallo","stadio","da + lo"],["dall'","università","da + l'"],["dai","genitori","da + i"],["dagli","zii","da + gli"],["dalle","nove","da + le"]],[["sul","tavolo","su + il"],["sulla","sedia","su + la"],["sullo","scaffale","su + lo"],["sull'","albero","su + l'"],["sui","libri","su + i"],["sugli","alberi","su + gli"],["sulle","sedie","su + le"]]];
+const C_PAIRS = [["fare colazione","吃早餐"],["fare la spesa","采购"],["fare due passi","散步"],["avere fame","饿了"],["avere sete","渴了"],["avere sonno","困了"],["avere paura","害怕"],["avere ragione","说得对"],["avere torto","错了"],["avere fretta","赶时间"],["andare d'accordo","相处融洽"],["dare una mano","帮忙"],["fare attenzione","小心"],["fare tardi","待到很晚"],["fare presto","赶快"],["in bocca al lupo","祝好运"],["non vedo l'ora","迫不及待"],["mi dispiace","很抱歉"],["per favore","请"],["per esempio","例如"],["a presto","回头见"],["a domani","明天见"],["di solito","通常"],["a volte","有时"],["ogni tanto","偶尔"],["più o meno","差不多"],["senza dubbio","无疑"],["secondo me","我认为"],["a mio parere","依我看"],["in altre parole","换句话说"]];
+
+const POS_CLASS = {
+  "名词":"noun", "动词":"verb", "形容词":"adj", "冠词":"art",
+  "副词":"adv", "代词":"pron", "连词":"conj", "数词":"num", "其他表达":"other"
+};
+
+const hints = {
+  word: "把意大利语单词和它的中文意思配对。",
+  gram: "把缩合介词和名词配对；小字是它的原形，如 al = a + il。",
+  expr: "把固定表达和它的中文意思配对。"
+};
+
+let mode = "word";
+let pairs = [];
+let matched = 0;
+let score = 0, combo = 0, hits = 0, misses = 0;
+let roundNo = 1;
+let sel = null;
+let lock = false;
+let gen = 0;
+let gramOrder = [];
+let gramOmit = {};
+let gramIdx = 0;
+let recentWords = [];
+let recentExpr = [];
+let completedRounds = 0;
+let modalOpen = false;
+let afterModal = null;
+
+const $ = id => document.getElementById(id);
+const leftCol = $("left"), rightCol = $("right");
+const svg = $("lines");
+
+const SCORE_KEY = "italiano_match_scores_v1";
+const ID_KEY = "italiano_match_last_id";
+const MODE_LABEL = { word:"词义", gram:"语法", expr:"固定表达" };
+let memoryScores = [];
+
+function loadScores(){
+  try{
+    const raw = localStorage.getItem(SCORE_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  }catch(e){ return memoryScores.slice(); }
+}
+function saveScores(arr){
+  memoryScores = arr;
+  try{ localStorage.setItem(SCORE_KEY, JSON.stringify(arr)); }catch(e){}
+}
+function lastId(){
+  try{ return localStorage.getItem(ID_KEY) || ""; }catch(e){ return ""; }
+}
+function rememberId(id){
+  try{ localStorage.setItem(ID_KEY, id); }catch(e){}
+}
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;" }[c]));
+}
+function dateLabel(ts){
+  const d = new Date(ts);
+  const p = n => String(n).padStart(2, "0");
+  return p(d.getMonth() + 1) + "-" + p(d.getDate());
+}
+function sortedScores(){
+  return loadScores().sort((a,b) => (b.score - a.score) || (a.ts - b.ts));
+}
+
+function shuffle(a){
+  a = a.slice();
+  for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; }
+  return a;
+}
+
+function sampleWords(n){
+  let pool = WORDS.filter(w => !recentWords.includes(w.it));
+  if(pool.length < n*3) { recentWords = []; pool = WORDS.slice(); }
+  const picked = [], usedZh = new Set();
+  let guard = 0;
+  while(picked.length < n && guard++ < 800){
+    const w = pool[Math.floor(Math.random()*pool.length)];
+    if(!w || usedZh.has(w.zh)) continue;
+    usedZh.add(w.zh);
+    picked.push({ left:w.it, right:w.zh, pos:w.pos });
+    recentWords.push(w.it);
+    if(recentWords.length > 40) recentWords.shift();
+  }
+  return picked;
+}
+
+function sampleExpr(n){
+  let pool = C_PAIRS.filter(p => !recentExpr.includes(p[0]));
+  if(pool.length < n*2) { recentExpr = []; pool = C_PAIRS.slice(); }
+  const picked = [], usedZh = new Set();
+  let guard = 0;
+  while(picked.length < n && guard++ < 500){
+    const p = pool[Math.floor(Math.random()*pool.length)];
+    if(!p || usedZh.has(p[1])) continue;
+    usedZh.add(p[1]);
+    picked.push({ left:p[0], right:p[1] });
+    recentExpr.push(p[0]);
+    if(recentExpr.length > 30) recentExpr.shift();
+  }
+  return picked;
+}
+
+function nextGramRound(){
+  if(gramIdx >= gramOrder.length){
+    gramOrder = shuffle(B_ROUNDS.map((_,i)=>i));
+    gramIdx = 0;
+  }
+  const idx = gramOrder[gramIdx++];
+  const fam = B_ROUNDS[idx];
+  let pool = fam;
+  if(fam.length > 6){
+    if(gramOmit[idx] === undefined) gramOmit[idx] = Math.floor(Math.random() * fam.length);
+    const skip = gramOmit[idx] % fam.length;
+    gramOmit[idx] = skip + 1;
+    pool = fam.filter((_, i) => i !== skip);
+  }
+  return shuffle(pool).slice(0, 6).map(p => ({ left:p[0], right:p[1], decomp:p[2] || "" }));
+}
+
+function buildRound(){
+  gen++;
+  $("done").classList.remove("show");
+  if(mode === "word") pairs = sampleWords(6);
+  else if(mode === "expr") pairs = sampleExpr(6);
+  else pairs = nextGramRound();
+
+  matched = 0;
+  sel = null;
+  lock = false;
+  leftCol.innerHTML = "";
+  rightCol.innerHTML = "";
+  svg.innerHTML = "";
+
+  const leftItems = shuffle(pairs.map((p,i)=>({...p,i})));
+  const rightItems = shuffle(pairs.map((p,i)=>({...p,i})));
+
+  leftItems.forEach(p => leftCol.appendChild(makeTile(p, "left")));
+  rightItems.forEach(p => rightCol.appendChild(makeTile(p, "right")));
+
+  $("matched").textContent = 0;
+  $("total").textContent = pairs.length;
+  $("round").textContent = roundNo;
+}
+
+function makeTile(p, side){
+  const b = document.createElement("button");
+  b.className = "tile " + (mode === "word" ? "it" : mode === "gram" ? "gram" : "expr");
+  if(side === "right") b.className = "tile zh";
+  b.dataset.id = p.i;
+  b.dataset.side = side;
+
+  if(side === "left" && mode === "gram" && p.decomp){
+    b.classList.add("has-sub");
+    const main = document.createElement("span");
+    main.className = "main";
+    main.textContent = p.left;
+    const sub = document.createElement("span");
+    sub.className = "sub";
+    sub.textContent = p.decomp;
+    b.append(main, sub);
+  } else {
+    b.textContent = side === "left" ? p.left : p.right;
+  }
+
+  if(mode === "word" && side === "left"){
+    const cls = POS_CLASS[p.pos] || "other";
+    b.style.setProperty("--c", "var(--" + cls + ")");
+  }
+  b.addEventListener("click", () => onTile(b));
+  return b;
+}
+
+function onTile(el){
+  if(modalOpen || lock || el.classList.contains("gone")) return;
+  if(!sel){ select(el); return; }
+  if(sel === el){ deselect(); return; }
+  if(sel.dataset.side === el.dataset.side){ deselect(); select(el); return; }
+
+  const a = sel, b = el;
+  const aId = a.dataset.id, bId = b.dataset.id;
+
+  if(aId === bId) match(a, b);
+  else wrong(a, b);
+}
+
+function select(el){ sel = el; el.classList.add("sel"); }
+function deselect(){ if(sel) sel.classList.remove("sel"); sel = null; }
+
+function match(a, b){
+  lock = true;
+  const myGen = gen;
+  a.classList.add("ok"); b.classList.add("ok");
+  drawLine(a, b);
+
+  score += 10 + Math.min(combo, 8) * 2;
+  combo++; hits++; matched++;
+  $("score").textContent = score;
+  $("combo").textContent = combo;
+  $("matched").textContent = matched;
+  updateAcc();
+  ding(combo);
+
+  setTimeout(() => {
+    if(myGen !== gen) return;
+    a.classList.add("gone"); b.classList.add("gone");
+    a.classList.remove("ok","sel"); b.classList.remove("ok","sel");
+    svg.innerHTML = "";
+    lock = false;
+    deselect();
+
+    if(matched === pairs.length){
+      showDone();
+      roundNo++;
+      completedRounds++;
+      const milestone = completedRounds % 5 === 0;
+      setTimeout(() => {
+        if(myGen !== gen) return;
+        $("done").classList.remove("show");
+        if(milestone) showReward();
+        else buildRound();
+      }, 850);
+    }
+  }, 380);
+}
+
+function wrong(a, b){
+  lock = true;
+  const myGen = gen;
+  a.classList.add("bad"); b.classList.add("bad");
+  misses++; combo = 0;
+  $("combo").textContent = 0;
+  updateAcc();
+  buzz();
+
+  setTimeout(() => {
+    if(myGen !== gen) return;
+    a.classList.remove("bad","sel"); b.classList.remove("bad","sel");
+    lock = false;
+    deselect();
+  }, 380);
+}
+
+function updateAcc(){
+  const total = hits + misses;
+  $("acc").textContent = total ? Math.round(hits * 100 / total) + "%" : "—";
+}
+
+function drawLine(a, b){
+  const board = $("board").getBoundingClientRect();
+  const ar = a.getBoundingClientRect();
+  const br = b.getBoundingClientRect();
+  const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+  line.setAttribute("x1", ar.right - board.left);
+  line.setAttribute("y1", ar.top + ar.height / 2 - board.top);
+  line.setAttribute("x2", br.left - board.left);
+  line.setAttribute("y2", br.top + br.height / 2 - board.top);
+  line.setAttribute("stroke", "#2E8B57");
+  line.setAttribute("stroke-width", "3");
+  line.setAttribute("stroke-linecap", "round");
+  line.setAttribute("opacity", "0.85");
+  svg.appendChild(line);
+  line.animate([{opacity:0},{opacity:.9}], {duration:160});
+}
+
+let doneTimer = 0;
+function showDone(){
+  const d = $("done");
+  d.textContent = "本组完成！";
+  d.classList.add("show");
+  clearTimeout(doneTimer);
+}
+
+function recordScore(rawId){
+  const name = (rawId || "").trim() || "匿名玩家";
+  const key = name.toLowerCase();
+  const list = loadScores();
+  const entry = { key, name, score, mode, groups: completedRounds, ts: Date.now() };
+  const existing = list.find(e => e.key === key);
+  if(existing){
+    if(entry.score > existing.score) Object.assign(existing, entry);
+  } else {
+    list.push(entry);
+  }
+  list.sort((a,b) => (b.score - a.score) || (a.ts - b.ts));
+  saveScores(list.slice(0, 50));
+  rememberId((rawId || "").trim());
+}
+
+function renderRank(){
+  const el = $("rankList");
+  const top = sortedScores().slice(0, 10);
+  if(!top.length){
+    el.innerHTML = '<div class="empty">还没有成绩。<br>完成 5 组后，就可以留下 ID 上榜。</div>';
+    return;
+  }
+  el.innerHTML = top.map((e, i) => {
+    const cls = i === 0 ? "r1" : i === 1 ? "r2" : i === 2 ? "r3" : "";
+    const meta = (MODE_LABEL[e.mode] || "") + " · " + (e.groups || 0) + " 组 · " + dateLabel(e.ts);
+    return '<div class="rank-row ' + cls + '">' +
+      '<span class="rank">' + (i + 1) + '</span>' +
+      '<span class="who"><b>' + esc(e.name) + '</b><small>' + meta + '</small></span>' +
+      '<span class="pts">' + e.score + '</span></div>';
+  }).join("");
+}
+
+function openOverlay(){
+  modalOpen = true;
+  $("overlay").classList.add("show");
+}
+
+function closeOverlay(){
+  $("overlay").classList.remove("show");
+  modalOpen = false;
+  const fn = afterModal;
+  afterModal = null;
+  if(fn) fn();
+}
+
+function showReward(){
+  $("rewardView").hidden = false;
+  $("boardView").hidden = true;
+  const stage = Math.max(1, Math.floor(completedRounds / 5));
+  const total = hits + misses;
+  const acc = total ? Math.round(hits * 100 / total) : 0;
+  $("modalTitle").textContent = "恭喜，你完成了 " + completedRounds + " 组！";
+  $("rewardSub").textContent = MODE_LABEL[mode] + " · 第 " + stage + " 个阶段 · 正确率 " + acc + "%";
+  $("rewardScore").textContent = score;
+  $("playerId").value = lastId();
+  afterModal = () => buildRound();
+  openOverlay();
+}
+
+function showBoard(after){
+  renderRank();
+  $("rewardView").hidden = true;
+  $("boardView").hidden = false;
+  $("closeBoard").textContent = after ? "继续游戏" : "关闭";
+  afterModal = after || null;
+  openOverlay();
+}
+
+let ac = null;
+function tone(freq, dur, type, vol){
+  try{
+    if(!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || .05, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + dur);
+  }catch(e){}
+}
+function ding(c){ tone(1320 + Math.min(c,8)*35, .16, "sine", .055); }
+function buzz(){ tone(150, .12, "sawtooth", .05); }
+
+function setMode(m){
+  mode = m;
+  document.querySelectorAll(".mode").forEach(b => b.classList.toggle("on", b.dataset.mode === m));
+  $("hint").textContent = hints[m];
+  score = 0; combo = 0; hits = 0; misses = 0; roundNo = 1; completedRounds = 0;
+  $("score").textContent = 0; $("combo").textContent = 0; $("acc").textContent = "—";
+  buildRound();
+  startMusicFor(m);
+}
+
+document.querySelectorAll(".mode").forEach(b => {
+  b.addEventListener("click", () => setMode(b.dataset.mode));
+});
+$("restart").addEventListener("click", () => {
+  score = 0; combo = 0; hits = 0; misses = 0; roundNo = 1; completedRounds = 0;
+  $("score").textContent = 0; $("combo").textContent = 0; $("acc").textContent = "—";
+  buildRound();
+});
+$("boardBtn").addEventListener("click", () => showBoard(null));
+$("recordBtn").addEventListener("click", () => {
+  recordScore($("playerId").value);
+  showBoard(() => buildRound());
+});
+$("skipBtn").addEventListener("click", closeOverlay);
+$("closeBoard").addEventListener("click", closeOverlay);
+$("playerId").addEventListener("keydown", e => {
+  if(e.key === "Enter"){ e.preventDefault(); $("recordBtn").click(); }
+});
+document.addEventListener("keydown", e => {
+  if(e.key === "Escape" && modalOpen && !$("boardView").hidden) closeOverlay();
+});
+window.addEventListener("resize", () => { svg.innerHTML = ""; });
+
+
+/* ---------- 背景音乐（Web Audio，公有领域旋律） ---------- */
+const MUSIC_TRACKS = {"word":{"title":"Santa Lucia","bpm":84,"bar":3,"prog":[46,41,46,46,43,36,41,46,46,39,41,46,46,36,41,46,41,46],"notes":[[65,1],[65,1.5],[70,0.5],[70,0.5],[69,0.5],[69,2],[65,1],[65,1.5],[67,0.5],[67,1],[65,2],[62,1],[67,1],[65,1],[65,0.5],[64,0.5],[63,2],[63,1],[62,1],[60,0.5],[60,0.5],[67,1],[65,2],[74,1],[72,1],[70,0.5],[70,0.5],[69,0.5],[67,0.5],[72,2],[72,1],[70,1],[67,1],[64,0.5],[65,0.5],[70,2],[74,0.5],[70,0.5],[70,0.5],[65,0.5],[65,0.5],[62,0.5],[63,0.5],[72,0.5],[72,2],[72,1],[67,1.5],[69,0.5],[72,1],[70,2],[72,1],[74,1.5],[72,0.5],[72,1],[70,2]],"beats":54},"gram":{"title":"O Sole Mio","bpm":72,"bar":4,"prog":[36,36,36,38,38,43,43,36,36,36,36,38,38,36,43,36],"notes":[[0,1],[67,1],[65,1],[64,1],[62,2],[60,2],[60,1],[62,1],[64,1],[60,1],[59,2],[57,2],[0,1],[59,1],[60,1],[62,1],[59,1],[57,1],[57,3],[59,1],[60,1],[62,1],[57,1],[55,1],[55,2],[0,1],[67,1],[65,1],[64,1],[62,2],[60,2],[60,1],[62,1],[64,1],[60,1],[59,2],[57,2],[0,1],[65,1],[64,1],[62,1],[67,1],[64,1],[62,1],[60,1],[62,3],[64,1],[62,2],[60,2]],"beats":64},"expr":{"title":"Funiculì, Funiculà","bpm":112,"bar":3,"prog":[36,36,41,36,43,36,41,36],"notes":[[77,0.5],[82,3],[82,1],[82,0.5],[81,1],[81,0.5],[77,1],[77,0.5],[79,1],[79,0.5],[74,1.5],[74,1.5],[74,1],[74,0.5],[72,1],[70,0.5],[70,3],[70,1],[74,0.5],[72,1],[70,0.5],[70,3],[70,1.5],[0,0.5],[0,0.5],[77,0.5],[74,3],[74,1],[74,0.5],[76,1],[76,0.5],[74,1],[74,0.5],[76,1],[76,0.5],[74,1.5],[69,1.5],[69,1],[69,0.5],[69,1],[69,0.5],[69,3],[69,1.5],[0,1],[77,0.5],[77,3],[77,1.5],[77,0.5],[79,0.5],[81,0.5],[79,0.5],[77,1],[77,0.5],[79,0.5],[81,0.5],[79,0.5],[77,1.5],[72,1.5],[72,1],[72,0.5],[72,0.5]],"beats":63}};
+let mCtx = null, mMaster = null, mTrackGain = null, mNodes = [], mLoopTimer = 0, mStarted = false;
+let mOn = true, mVol = 0.22, mMode = "word";
+try { mOn = localStorage.getItem("it_match_music") !== "off"; } catch (e) {}
+try {
+  const v = parseFloat(localStorage.getItem("it_match_vol"));
+  if (!isNaN(v)) mVol = Math.max(0, Math.min(0.4, v));
+} catch (e) {}
+
+const musicBtn = document.getElementById("musicBtn");
+const musicVol = document.getElementById("musicVol");
+
+function mEnsure() {
+  if (!mCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if (!AC) return false;
+    mCtx = new AC();
+    mMaster = mCtx.createGain();
+    mMaster.gain.value = mOn ? mVol : 0;
+    mMaster.connect(mCtx.destination);
+  }
+  if (mCtx.state === "suspended") mCtx.resume();
+  return true;
+}
+
+function mFreq(m) { return 440 * Math.pow(2, (m - 69) / 12); }
+
+function mStop() {
+  clearTimeout(mLoopTimer);
+  if (mTrackGain && mCtx) {
+    const g = mTrackGain, now = mCtx.currentTime;
+    try {
+      g.gain.cancelScheduledValues(now);
+      g.gain.setValueAtTime(g.gain.value, now);
+      g.gain.linearRampToValueAtTime(0, now + 0.25);
+    } catch (e) {}
+    setTimeout(() => { try { g.disconnect(); } catch (e) {} }, 360);
+  }
+  mTrackGain = null;
+  const ns = mNodes;
+  mNodes = [];
+  for (const n of ns) { try { n.stop(); } catch (e) {} }
+}
+
+function mVoice(midi, start, dur, gain, type) {
+  const f = mFreq(midi);
+  const o = mCtx.createOscillator();
+  o.type = "sine";
+  o.frequency.value = f;
+  const g = mCtx.createGain();
+  const peak = Math.max(0.0001, gain);
+  g.gain.setValueAtTime(0.0001, start);
+  g.gain.exponentialRampToValueAtTime(peak, start + 0.012);
+  g.gain.exponentialRampToValueAtTime(0.0001, start + Math.max(0.08, dur));
+  o.connect(g);
+  g.connect(mTrackGain);
+  o.start(start);
+  o.stop(start + Math.max(0.1, dur) + 0.03);
+  mNodes.push(o);
+
+  if (type === "melody") {
+    const o2 = mCtx.createOscillator();
+    o2.type = "triangle";
+    o2.frequency.value = f * 2;
+    const g2 = mCtx.createGain();
+    g2.gain.setValueAtTime(0.0001, start);
+    g2.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * 0.16), start + 0.01);
+    g2.gain.exponentialRampToValueAtTime(0.0001, start + Math.max(0.06, dur * 0.7));
+    o2.connect(g2);
+    g2.connect(mTrackGain);
+    o2.start(start);
+    o2.stop(start + Math.max(0.1, dur) + 0.03);
+    mNodes.push(o2);
+  }
+}
+
+function mSchedule(tr, t0) {
+  const spb = 60 / tr.bpm;
+  let cur = t0;
+  for (const [midi, beats] of tr.notes) {
+    const dur = beats * spb;
+    if (midi > 0) mVoice(midi, cur, Math.max(0.05, dur * 0.92), 0.14, "melody");
+    cur += dur;
+  }
+  const bars = Math.ceil(tr.beats / tr.bar);
+  let barStart = t0;
+  for (let b = 0; b < bars; b++) {
+    const root = tr.prog[b % tr.prog.length];
+    mVoice(root, barStart, Math.max(0.2, tr.bar * spb * 0.95), 0.055, "bass");
+    mVoice(root + 7, barStart, Math.max(0.2, tr.bar * spb * 0.9), 0.02, "bass");
+    barStart += tr.bar * spb;
+  }
+}
+
+function mStart(mode) {
+  if (!mOn || !mStarted || !mEnsure()) return;
+  const tr = MUSIC_TRACKS[mode];
+  if (!tr) return;
+  mMode = mode;
+  mStop();
+  mTrackGain = mCtx.createGain();
+  mTrackGain.gain.value = 0;
+  const filter = mCtx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 2100;
+  mTrackGain.connect(filter);
+  filter.connect(mMaster);
+
+  const t0 = mCtx.currentTime + 0.04;
+  mTrackGain.gain.setValueAtTime(0, t0);
+  mTrackGain.gain.linearRampToValueAtTime(1, t0 + 0.6);
+  mSchedule(tr, t0);
+
+  const loopMs = Math.max(300, tr.beats * 60 / tr.bpm * 1000 - 40);
+  mLoopTimer = setTimeout(() => { if (mStarted && mOn) mStart(mode); }, loopMs);
+}
+
+function startMusicFor(mode) {
+  if (!mStarted) return;
+  mStart(mode);
+}
+
+function mUnlock() {
+  if (mStarted) return;
+  mStarted = true;
+  if (mEnsure() && mOn) mStart(mode);
+}
+
+function mUpdateBtn() {
+  musicBtn.textContent = mOn ? "♪ 开" : "♪ 关";
+  musicBtn.classList.toggle("on", mOn);
+  musicBtn.setAttribute("aria-pressed", mOn ? "true" : "false");
+}
+
+function mSetVolume(v) {
+  mVol = Math.max(0, Math.min(0.4, v));
+  if (mMaster && mCtx) {
+    const now = mCtx.currentTime;
+    mMaster.gain.cancelScheduledValues(now);
+    mMaster.gain.setTargetAtTime(mOn ? mVol : 0, now, 0.05);
+  }
+  try { localStorage.setItem("it_match_vol", String(mVol)); } catch (e) {}
+}
+
+mUpdateBtn();
+if (musicVol) musicVol.value = String(Math.round(mVol / 0.4 * 100));
+function onFirstGesture(e) {
+  if (e.target && e.target.closest && e.target.closest("#musicCtl")) return;
+  document.removeEventListener("pointerdown", onFirstGesture);
+  document.removeEventListener("keydown", onFirstGesture);
+  mUnlock();
+}
+document.addEventListener("pointerdown", onFirstGesture);
+document.addEventListener("keydown", onFirstGesture);
+
+musicBtn.addEventListener("click", (e) => {
+  e.stopPropagation();
+  if (!mStarted) { mUnlock(); return; }
+  mOn = !mOn;
+  try { localStorage.setItem("it_match_music", mOn ? "on" : "off"); } catch (err) {}
+  mUpdateBtn();
+  if (mMaster && mCtx) {
+    const now = mCtx.currentTime;
+    mMaster.gain.cancelScheduledValues(now);
+    mMaster.gain.setTargetAtTime(mOn ? mVol : 0, now, 0.05);
+  }
+  if (mOn) mStart(mode);
+  else mStop();
+});
+
+musicVol.addEventListener("input", () => mSetVolume(parseFloat(musicVol.value) / 100 * 0.4));
+
+document.addEventListener("visibilitychange", () => {
+  if (!mCtx || !mStarted) return;
+  if (document.hidden) {
+    mStop();
+    try { mCtx.suspend(); } catch (e) {}
+  } else {
+    try { mCtx.resume(); } catch (e) {}
+    if (mOn) mStart(mode);
+  }
+});
+
+/* ---------- 试玩版购买入口 ---------- */
+const BUY_URL = ""; // TODO: 上架后填入面包多作品链接
+const buyLink = document.getElementById("buyLink");
+if (BUY_URL) {
+  buyLink.href = BUY_URL;
+  buyLink.style.display = "inline-flex";
+}
+buildRound();
+</script>
+</body>
+</html>
