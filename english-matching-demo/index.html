@@ -1,0 +1,2916 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>英语连线消消乐</title>
+<style>
+  :root{
+    --bg:#FBF7EE; --panel:#FFFDF8; --line:#E3DAC8; --ink:#2C2A26; --muted:#8C8577;
+    --navy:#17324F; --navy-soft:#EDF1F6; --navy-line:#B9C7D6; --navy-shadow:rgba(23,50,79,.20);
+    --orange:#C2600D; --orange-soft:#FCF2E6; --orange-line:#E9C9A6; --orange-shadow:rgba(194,96,13,.20);
+    --green:#2E8B57; --green-soft:#F1F8F3; --green-line:#B7D8C2; --green-shadow:rgba(46,139,87,.20);
+    --red:#C0392B;
+    --accent:var(--navy); --accent-soft:var(--navy-soft); --accent-line:var(--navy-line); --accent-shadow:var(--navy-shadow);
+  }
+  body[data-mode="phrase"]{
+    --accent:var(--orange); --accent-soft:var(--orange-soft); --accent-line:var(--orange-line); --accent-shadow:var(--orange-shadow);
+  }
+  body[data-mode="review"]{
+    --accent:var(--green); --accent-soft:var(--green-soft); --accent-line:var(--green-line); --accent-shadow:var(--green-shadow);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(900px 500px at 50% -10%, #FFFDF7 0%, var(--bg) 60%);
+    color:var(--ink); font-family:"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    min-height:100vh; padding:14px 12px 22px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:760px; margin:0 auto}
+
+  header{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:10px}
+  h1{font-size:18px; margin:0; color:var(--accent); letter-spacing:.5px; flex:1 1 100%}
+  h1 span{font-size:11px; color:var(--muted); font-weight:400; margin-left:6px}
+  h1 b{font-weight:700; color:var(--muted)}
+
+  .modes{display:flex; gap:6px; flex:1 1 auto; flex-wrap:wrap}
+  .mode{
+    border:1px solid var(--line); background:var(--panel); color:var(--muted);
+    border-radius:999px; padding:7px 12px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit;
+  }
+  .mode.on{background:var(--accent); border-color:var(--accent); color:#fff}
+
+  .stats{display:flex; flex-wrap:wrap; gap:8px 12px; font-size:12px; color:var(--muted)}
+  .stats b{color:var(--ink); font-size:14px; margin-left:3px}
+  #score{color:var(--accent)}
+  #combo{color:var(--green)}
+
+  .hint{font-size:12.5px; color:var(--muted); margin:4px 0 10px; min-height:18px}
+
+  .board{
+    position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:10px 14px; padding:6px 2px;
+  }
+  #lines{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible}
+  .col{display:flex; flex-direction:column; gap:9px; min-width:0}
+
+  .tile{
+    width:100%; min-height:58px; display:flex; align-items:center;
+    padding:10px 12px; border-radius:14px; cursor:pointer;
+    background:var(--panel); border:1px solid var(--line);
+    font-family:inherit; font-size:clamp(14px,4vw,17px); line-height:1.25;
+    color:var(--ink); text-align:left; min-width:0;
+    overflow-wrap:anywhere; user-select:none;
+    transition:transform .12s, box-shadow .12s, border-color .12s, background .12s, opacity .2s;
+    box-shadow:0 2px 6px rgba(120,100,60,.06);
+  }
+  .tile:active{transform:scale(.985)}
+  .tile.en{
+    font-weight:600; border-left:4px solid var(--accent); color:#1B3B5C;
+    flex-direction:column; align-items:flex-start; justify-content:center;
+    gap:1px; padding-top:8px; padding-bottom:8px;
+  }
+  .tile .word{line-height:1.2}
+  .tile .pos{
+    font-size:10.5px; font-weight:500; line-height:1.1;
+    color:#7C766B; letter-spacing:.2px;
+  }
+  .tile.zh{color:#4a4438}
+  .tile.sel{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-shadow)}
+  .tile.ok{border-color:var(--green); background:#F1F8F3}
+  .tile.bad{animation:shake .35s; border-color:var(--red); background:#FDF1EF}
+  .tile.gone{opacity:0; transform:scale(.94); pointer-events:none}
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-5px)}
+    40%{transform:translateX(5px)}
+    60%{transform:translateX(-3px)}
+    80%{transform:translateX(3px)}
+  }
+
+  .bar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px}
+  .progress{font-size:12.5px; color:var(--muted)}
+  .progress b{color:var(--accent)}
+  .bar-actions{display:flex; gap:8px}
+  .restart{
+    border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit; display:inline-flex; align-items:center; gap:6px;
+  }
+  .restart:hover{background:#F4EEDF}
+  .restart.has-err{border-color:#E0B990; background:#FFF7EC}
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:18px; height:18px; padding:0 5px; border-radius:999px;
+    background:#E8871E; color:#fff; font-size:11px; font-weight:700;
+  }
+
+  .foot{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px}
+  .chip{
+    border:1px solid var(--line); background:var(--panel); color:var(--muted);
+    border-radius:999px; padding:6px 12px; font-size:12.5px; cursor:pointer;
+    font-family:inherit; font-weight:600;
+  }
+  .chip.on{color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft)}
+  .foot-note{font-size:11.5px; color:var(--muted)}
+
+  .done{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(.9);
+    background:var(--accent); color:#fff; padding:14px 22px; border-radius:14px;
+    font-size:16px; font-weight:700; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:9; max-width:86vw; text-align:center;
+  }
+  .done.show{opacity:1; transform:translate(-50%,-50%) scale(1)}
+
+  .overlay{
+    position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center;
+    padding:18px; background:rgba(43,37,25,.46);
+  }
+  .overlay.show{display:flex}
+  .modal{
+    width:min(100%,400px); max-height:92vh; overflow:auto; text-align:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    padding:18px 16px 14px; box-shadow:0 20px 60px rgba(40,30,10,.28);
+  }
+  .modal h2{margin:0; font-size:19px; color:var(--accent)}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .x{
+    border:none; background:transparent; color:var(--muted); font-size:22px; line-height:1;
+    cursor:pointer; padding:2px 6px; border-radius:8px;
+  }
+  .x:hover{background:#F4EEDF}
+  .modal .sub{margin:6px 0 10px; font-size:12.5px; color:var(--muted); line-height:1.5; text-align:left}
+  .modal-actions{display:flex; gap:8px; margin-top:12px}
+  .modal-actions button{
+    flex:1; border-radius:10px; padding:10px 12px; font:inherit; font-size:13.5px;
+    font-weight:700; cursor:pointer;
+  }
+  .primary{border:1px solid var(--green); background:var(--green); color:#fff}
+  .primary:hover{filter:brightness(.96)}
+  .primary:disabled{opacity:.45; cursor:not-allowed; filter:none}
+  .ghost{border:1px solid var(--line); background:var(--panel); color:var(--ink)}
+  .ghost:hover{background:#F4EEDF}
+
+  .err-list{display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; text-align:left; margin:8px 0 4px}
+  .err-row{display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:12px; background:#FBF7EE; border:1px solid var(--line)}
+  .err-row .say,.err-row .rm{
+    border:1px solid var(--line); background:#fff; border-radius:9px;
+    width:34px; height:34px; cursor:pointer; font-size:14px; flex:none; line-height:1;
+  }
+  .err-row .say:hover,.err-row .rm:hover{background:#F4EEDF}
+  .err-row .rm{color:var(--green); font-weight:700}
+  .err-row .who{flex:1; min-width:0}
+  .err-row .who .err-head{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap}
+  .err-row .who .err-head b{font-size:14.5px; color:#1B3B5C; overflow-wrap:anywhere}
+  .err-row .who .err-head .pos{font-size:10px; color:var(--muted); flex:none}
+  .err-row .who small{display:block; font-size:11.5px; color:var(--muted); overflow-wrap:anywhere}
+  .err-row .times{font-size:11.5px; color:var(--muted); flex:none}
+  .empty{padding:22px 8px; font-size:13px; color:var(--muted); line-height:1.7; text-align:center}
+
+  @media (max-width:420px){
+    body{padding:10px 8px 18px}
+    .tile{min-height:56px; padding:8px 9px; border-radius:12px}
+    .tile.en{padding-top:6px; padding-bottom:6px}
+    .tile .pos{font-size:10px}
+    .stats{gap:9px}
+    .bar{flex-wrap:wrap}
+    .bar-actions{width:100%; justify-content:flex-end}
+  }
+</style>
+</head>
+<body data-mode="word">
+<div class="wrap">
+  <header>
+    <h1>英语连线消消乐 <span>初中核心词汇 · <b id="wordCount">0</b> 词 · <b id="phraseCount">0</b> 短语</span></h1>
+    <div class="modes">
+      <button class="mode on" data-mode="word">单词</button>
+      <button class="mode" data-mode="phrase">短语</button>
+    </div>
+    <div class="stats">
+      <div>得分<b id="score">0</b></div>
+      <div>连击<b id="combo">0</b></div>
+      <div>正确率<b id="acc">—</b></div>
+    </div>
+  </header>
+
+  <div class="hint" id="hint" aria-live="polite">把英文单词和它的中文意思配对。点英文卡片可以听发音。</div>
+
+  <div class="board" id="board">
+    <svg id="lines"></svg>
+    <div class="col" id="left"></div>
+    <div class="col" id="right"></div>
+  </div>
+
+  <div class="bar">
+    <div class="progress">本组 <b id="matched">0</b> / <span id="total">6</span> · 第 <b id="round">1</b> 组</div>
+    <div class="bar-actions">
+      <button class="restart" id="bookBtn">📕 错词本 <span class="badge" id="bookCount">0</span></button>
+      <button class="restart" id="restart">重新开始</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button class="chip on" id="ttsToggle">🔊 发音开</button>
+    <button class="chip on" id="sfxToggle">🎵 音效开</button>
+    <span class="foot-note">点英文卡片听发音</span>
+  </div>
+</div>
+
+<div class="done" id="done" aria-live="polite"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+    <div class="modal-head">
+      <h2 id="bookTitle">错词本</h2>
+      <button class="x" id="closeBook" aria-label="关闭">×</button>
+    </div>
+    <p class="sub" id="bookSub">配对出错时会自动记在这里。复习时配对正确，这个词就会移除。</p>
+    <div class="err-list" id="errList"></div>
+    <div class="modal-actions">
+      <button class="primary" id="reviewBtn">复习这些词</button>
+      <button class="ghost" id="clearBook">清空</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 词库 =================
+   格式：英文|中文，一行一个，重复的英文会自动去重。
+   想增删词，直接改下面的 WORD_RAW / PHRASE_RAW 即可。
+========================================= */
+const WORD_RAW = `
+man|男人|n
+woman|女人|n
+boy|男孩|n
+girl|女孩|n
+baby|婴儿|n
+child|孩子|n
+kid|小孩|n
+person|人|n
+people|人们|n
+human|人类|n
+friend|朋友|n
+friendship|友谊|n
+classmate|同学|n
+neighbor|邻居|n
+family|家庭|n
+parent|父母|n
+father|父亲|n
+mother|母亲|n
+dad|爸爸|n
+mom|妈妈|n
+grandfather|祖父|n
+grandmother|祖母|n
+grandpa|爷爷|n
+grandma|奶奶|n
+uncle|叔叔|n
+aunt|阿姨|n
+cousin|堂兄弟姐妹|n
+brother|兄弟|n
+sister|姐妹|n
+son|儿子|n
+daughter|女儿|n
+husband|丈夫|n
+wife|妻子|n
+twin|双胞胎|n
+teenager|青少年|n
+adult|成年人|n
+stranger|陌生人|n
+guest|客人|n
+host|主人|n
+hero|英雄|n
+king|国王|n
+queen|女王|n
+prince|王子|n
+princess|公主|n
+policeman|男警察|n
+policewoman|女警察|n
+doctor|医生|n
+nurse|护士|n
+teacher|教师|n
+student|学生|n
+pupil|小学生|n
+driver|司机|n
+farmer|农民|n
+worker|工人|n
+waiter|男服务员|n
+waitress|女服务员|n
+actor|男演员|n
+actress|女演员|n
+singer|歌手|n
+dancer|舞者|n
+artist|艺术家|n
+writer|作家|n
+reporter|记者|n
+scientist|科学家|n
+engineer|工程师|n
+lawyer|律师|n
+soldier|士兵|n
+pilot|飞行员|n
+coach|教练|n
+manager|经理|n
+boss|老板|n
+secretary|秘书|n
+shopkeeper|店主|n
+guide|导游|n
+visitor|参观者|n
+volunteer|志愿者|n
+captain|队长|n
+player|运动员|n
+winner|获胜者|n
+loser|失败者|n
+leader|领导者|n
+member|成员|n
+partner|伙伴|n
+team|队|n
+group|组|n
+crowd|人群|n
+audience|观众|n
+public|公共的|adj
+society|社会|n
+community|社区|n
+population|人口|n
+citizen|公民|n
+relative|亲戚|n
+generation|一代人|n
+ancestor|祖先|n
+neighborhood|街区|n
+acquaintance|熟人|n
+body|身体|n
+head|头|n
+hair|头发|n
+face|脸|n
+eye|眼睛|n
+ear|耳朵|n
+nose|鼻子|n
+mouth|嘴|n
+tooth|牙齿|n
+tongue|舌头|n
+neck|脖子|n
+shoulder|肩膀|n
+arm|手臂|n
+hand|手|n
+finger|手指|n
+thumb|拇指|n
+leg|腿|n
+foot|脚|n
+knee|膝盖|n
+back|背部|n
+chest|胸部|n
+heart|心脏|n
+brain|大脑|n
+skin|皮肤|n
+blood|血|n
+bone|骨头|n
+stomach|胃|n
+muscle|肌肉|n
+voice|嗓音|n
+smile|微笑|n
+tear|眼泪|n
+sweat|汗水|n
+breath|气息|n
+health|健康|n
+illness|疾病|n
+disease|疾病|n
+fever|发烧|n
+cough|咳嗽|n
+headache|头痛|n
+toothache|牙痛|n
+stomachache|胃痛|n
+pain|疼痛|n
+medicine|药|n
+pill|药片|n
+hospital|医院|n
+patient|病人|n
+dentist|牙医|n
+energy|能量|n
+exercise|锻炼|n
+sleep|睡觉|v
+dream|梦想|n
+rest|休息|n
+diet|饮食|n
+weight|重量|n
+height|高度|n
+injury|伤害|n
+wound|伤口|n
+danger|危险|n
+safety|安全|n
+habit|习惯|n
+lifestyle|生活方式|n
+treatment|治疗|n
+recovery|康复|n
+nutrition|营养|n
+feeling|感受|n
+emotion|情绪|n
+joy|快乐|n
+happiness|幸福|n
+sadness|悲伤|n
+anger|愤怒|n
+fear|恐惧|n
+worry|担忧|n
+stress|压力|n
+hope|希望|n
+wish|愿望|n
+love|爱|n
+hate|憎恨|n
+pride|骄傲|n
+shame|羞愧|n
+courage|勇气|n
+confidence|信心|n
+patience|耐心|n
+kindness|善良|n
+honesty|诚实|n
+politeness|礼貌|n
+humor|幽默|n
+surprise|惊讶|n
+excitement|兴奋|n
+interest|兴趣|n
+boredom|无聊|n
+loneliness|孤独|n
+comfort|安慰|n
+support|支持|n
+trust|信任|n
+respect|尊重|n
+understanding|理解|n
+forgiveness|原谅|n
+attitude|态度|n
+spirit|精神|n
+mood|心情|n
+memory|记忆|n
+attention|注意力|n
+imagination|想象力|n
+creativity|创造力|n
+wisdom|智慧|n
+food|食物|n
+meal|一餐|n
+breakfast|早餐|n
+lunch|午餐|n
+dinner|晚餐|n
+supper|晚饭|n
+rice|米饭|n
+noodle|面条|n
+bread|面包|n
+cake|蛋糕|n
+biscuit|饼干|n
+cookie|曲奇|n
+candy|糖果|n
+chocolate|巧克力|n
+egg|鸡蛋|n
+meat|肉|n
+beef|牛肉|n
+pork|猪肉|n
+chicken|鸡肉|n
+fish|鱼|n
+duck|鸭子|n
+mutton|羊肉|n
+ham|火腿|n
+sausage|香肠|n
+sandwich|三明治|n
+hamburger|汉堡包|n
+pizza|披萨|n
+dumpling|饺子|n
+soup|汤|n
+salad|沙拉|n
+vegetable|蔬菜|n
+fruit|水果|n
+apple|苹果|n
+banana|香蕉|n
+orange|橙子|n
+grape|葡萄|n
+pear|梨|n
+peach|桃子|n
+strawberry|草莓|n
+watermelon|西瓜|n
+lemon|柠檬|n
+mango|芒果|n
+tomato|西红柿|n
+potato|土豆|n
+carrot|胡萝卜|n
+onion|洋葱|n
+cabbage|卷心菜|n
+pea|豌豆|n
+bean|豆子|n
+corn|玉米|n
+mushroom|蘑菇|n
+water|水|n
+milk|牛奶|n
+juice|果汁|n
+coffee|咖啡|n
+tea|茶|n
+cola|可乐|n
+wine|葡萄酒|n
+beer|啤酒|n
+drink|饮料|n
+sugar|糖|n
+salt|盐|n
+oil|油|n
+sauce|酱汁|n
+butter|黄油|n
+cheese|奶酪|n
+cream|奶油|n
+honey|蜂蜜|n
+flour|面粉|n
+snack|零食|n
+dessert|甜点|n
+menu|菜单|n
+restaurant|餐馆|n
+taste|味道|n
+flavor|口味|n
+smell|气味|n
+sweet|甜的|adj
+sour|酸的|adj
+bitter|苦的|adj
+spicy|辣的|adj
+salty|咸的|adj
+fresh|新鲜的|adj
+delicious|美味的|adj
+hungry|饥饿的|adj
+thirsty|口渴的|adj
+full|饱的|adj
+plate|盘子|n
+bowl|碗|n
+cup|杯子|n
+glass|玻璃杯|n
+bottle|瓶子|n
+fork|叉子|n
+knife|刀|n
+spoon|勺子|n
+chopsticks|筷子|n
+pot|锅|n
+pan|平底锅|n
+dish|碟子|n
+tray|托盘|n
+napkin|餐巾|n
+straw|吸管|n
+clothes|衣服|n
+clothing|服装|n
+coat|外套|n
+jacket|夹克|n
+shirt|衬衫|n
+T-shirt|T恤|n
+sweater|毛衣|n
+dress|连衣裙|n
+skirt|裙子|n
+trousers|裤子|n
+pants|长裤|n
+jeans|牛仔裤|n
+shorts|短裤|n
+sock|袜子|n
+shoe|鞋|n
+boot|靴子|n
+hat|帽子|n
+cap|鸭舌帽|n
+scarf|围巾|n
+glove|手套|n
+belt|腰带|n
+tie|领带|n
+pocket|口袋|n
+button|纽扣|n
+uniform|制服|n
+size|尺寸|n
+fashion|时尚|n
+style|风格|n
+color|颜色|n
+red|红色|n
+blue|蓝色|n
+green|绿色|n
+yellow|黄色|n
+black|黑色|n
+white|白色|n
+brown|棕色|n
+gray|灰色|n
+pink|粉色|n
+purple|紫色|n
+gold|金色|n
+silver|银色|n
+dark|深色的|adj
+bright|明亮的|adj
+curly|卷曲的|adj
+straight|直的|adj
+beautiful|美丽的|adj
+pretty|漂亮的|adj
+handsome|英俊的|adj
+ugly|丑的|adj
+cute|可爱的|adj
+house|房子|n
+home|家|n
+room|房间|n
+bedroom|卧室|n
+bathroom|浴室|n
+kitchen|厨房|n
+toilet|厕所|n
+garage|车库|n
+garden|花园|n
+yard|院子|n
+balcony|阳台|n
+gate|大门|n
+wall|墙|n
+floor|地板|n
+ceiling|天花板|n
+roof|屋顶|n
+door|门|n
+window|窗户|n
+stair|楼梯|n
+elevator|电梯|n
+furniture|家具|n
+table|桌子|n
+desk|书桌|n
+chair|椅子|n
+sofa|沙发|n
+bed|床|n
+shelf|架子|n
+cupboard|橱柜|n
+drawer|抽屉|n
+mirror|镜子|n
+clock|时钟|n
+lamp|台灯|n
+light|光|n
+candle|蜡烛|n
+key|钥匙|n
+lock|锁|n
+box|盒子|n
+bag|包|n
+basket|篮子|n
+brush|刷子|n
+towel|毛巾|n
+soap|肥皂|n
+toothbrush|牙刷|n
+toothpaste|牙膏|n
+blanket|毯子|n
+pillow|枕头|n
+quilt|被子|n
+curtain|窗帘|n
+carpet|地毯|n
+rubbish|垃圾|n
+bin|垃圾桶|n
+broom|扫帚|n
+tool|工具|n
+machine|机器|n
+device|设备|n
+equipment|设备|n
+school|学校|n
+classroom|教室|n
+blackboard|黑板|n
+chalk|粉笔|n
+library|图书馆|n
+playground|操场|n
+gym|体育馆|n
+lab|实验室|n
+office|办公室|n
+hall|大厅|n
+campus|校园|n
+lesson|课|n
+class|班级|n
+course|课程|n
+subject|科目|n
+math|数学|n
+English|英语|n
+Chinese|中文|n
+history|历史|n
+geography|地理|n
+biology|生物|n
+physics|物理|n
+chemistry|化学|n
+science|科学|n
+music|音乐|n
+art|美术|n
+politics|政治|n
+computer|电脑|n
+information|信息|n
+technology|技术|n
+exam|考试|n
+test|测验|n
+quiz|小测验|n
+score|得分|n
+grade|成绩|n
+homework|作业|n
+notebook|笔记本|n
+textbook|教科书|n
+dictionary|词典|n
+paper|纸|n
+pen|钢笔|n
+pencil|铅笔|n
+eraser|橡皮|n
+ruler|尺子|n
+crayon|蜡笔|n
+schoolbag|书包|n
+page|页|n
+word|单词|n
+sentence|句子|n
+paragraph|段落|n
+grammar|语法|n
+vocabulary|词汇|n
+pronunciation|发音|n
+spelling|拼写|n
+meaning|意思|n
+question|问题|n
+answer|回答|v
+problem|难题|n
+mistake|错误|n
+topic|话题|n
+title|标题|n
+story|故事|n
+poem|诗|n
+song|歌曲|n
+article|文章|n
+passage|短文|n
+knowledge|知识|n
+education|教育|n
+study|学习|v
+university|大学|n
+college|学院|n
+degree|度|n
+president|总统|n
+headmaster|校长|n
+monitor|班长|n
+term|学期|n
+holiday|假期|n
+weekend|周末|n
+break|休息|n
+schedule|日程表|n
+timetable|课程表|n
+rule|规则|n
+example|例子|n
+exercise|练习|n
+result|结果|n
+progress|进步|n
+success|成功|n
+failure|失败|n
+prize|奖品|n
+scholarship|奖学金|n
+semester|学期|n
+job|工作|n
+work|工作|n
+career|职业|n
+business|生意|n
+company|公司|n
+factory|工厂|n
+farm|农场|n
+shop|商店|n
+market|市场|n
+supermarket|超市|n
+mall|商场|n
+bank|银行|n
+hotel|旅馆|n
+museum|博物馆|n
+theater|剧院|n
+cinema|电影院|n
+zoo|动物园|n
+park|公园|n
+square|广场|n
+station|车站|n
+airport|机场|n
+port|港口|n
+workshop|车间|n
+salary|工资|n
+money|钱|n
+coin|硬币|n
+note|笔记|n
+bill|账单|n
+price|价格|n
+value|价值|n
+dollar|美元|n
+pound|英镑|n
+yuan|元|n
+cent|分|n
+cash|现金|n
+card|卡片|n
+wallet|钱包|n
+ticket|票|n
+receipt|收据|n
+discount|折扣|n
+sale|出售|n
+customer|顾客|n
+staff|员工|n
+colleague|同事|n
+interview|面试|n
+meeting|会议|n
+project|项目|n
+plan|计划|n
+report|报告|n
+document|文件|n
+sign|标志|n
+contract|合同|n
+deal|交易|n
+order|订单|n
+task|任务|n
+duty|职责|n
+experience|经验|n
+skill|技能|n
+ability|能力|n
+talent|天赋|n
+chance|机会|n
+goal|目标|n
+aim|目的|adj
+future|未来|n
+past|过去|n
+gift|礼物|n
+trade|贸易|n
+industry|工业|n
+economy|经济|n
+government|政府|n
+policy|政策|n
+law|法律|n
+right|右边|n
+freedom|自由|n
+peace|和平|n
+war|战争|n
+election|选举|n
+service|服务|n
+product|产品|n
+brand|品牌|n
+quality|质量|n
+standard|标准|n
+profit|利润|n
+tax|税|n
+budget|预算|n
+city|城市|n
+town|城镇|n
+village|村庄|n
+country|国家|n
+capital|首都|n
+street|街道|n
+road|路|n
+bridge|桥|n
+tunnel|隧道|n
+corner|拐角|n
+crossing|十字路口|n
+traffic|交通|n
+car|汽车|n
+bus|公交车|n
+taxi|出租车|n
+train|火车|n
+subway|地铁|n
+plane|飞机|n
+ship|船|n
+boat|小船|n
+bike|自行车|n
+motorbike|摩托车|n
+truck|卡车|n
+van|面包车|n
+passenger|乘客|n
+fare|车费|n
+journey|旅程|n
+trip|旅行|n
+tour|旅游|n
+map|地图|n
+direction|方向|n
+north|北|n
+south|南|n
+east|东|n
+west|西|n
+left|左边|n
+right|右边|n
+straight|直的|adj
+distance|距离|n
+way|方式|n
+route|路线|n
+address|地址|n
+phone|电话|n
+mobile|手机|n
+number|号码|n
+email|电子邮件|n
+message|消息|n
+internet|互联网|n
+website|网站|n
+screen|屏幕|n
+camera|相机|n
+photo|照片|n
+video|视频|n
+film|电影|n
+television|电视|n
+radio|收音机|n
+news|新闻|n
+newspaper|报纸|n
+magazine|杂志|n
+book|书|n
+novel|小说|n
+cartoon|动画片|n
+game|游戏|n
+toy|玩具|n
+doll|玩偶|n
+ball|球|n
+kite|风筝|n
+balloon|气球|n
+party|派对|n
+birthday|生日|n
+festival|节日|n
+Christmas|圣诞节|n
+Thanksgiving|感恩节|n
+Halloween|万圣节|n
+Easter|复活节|n
+lantern|灯笼|n
+dragon|龙|n
+tradition|传统|n
+culture|文化|n
+custom|习俗|n
+ceremony|仪式|n
+wedding|婚礼|n
+funeral|葬礼|n
+tourism|旅游业|n
+passport|护照|n
+visa|签证|n
+luggage|行李|n
+suitcase|行李箱|n
+backpack|背包|n
+platform|站台|n
+railway|铁路|n
+highway|高速公路|n
+crossroad|十字路口|n
+traffic light|红绿灯|n
+nature|自然|n
+sky|天空|n
+sun|太阳|n
+moon|月亮|n
+star|星星|n
+earth|地球|n
+world|世界|n
+planet|行星|n
+space|太空|n
+cloud|云|n
+rain|雨|n
+snow|雪|n
+wind|风|n
+storm|暴风雨|n
+thunder|雷|n
+lightning|闪电|n
+fog|雾|n
+rainbow|彩虹|n
+weather|天气|n
+temperature|温度|n
+degree|度|n
+season|季节|n
+spring|春天|n
+summer|夏天|n
+autumn|秋天|n
+winter|冬天|n
+climate|气候|n
+mountain|山|n
+hill|小山|n
+valley|山谷|n
+river|河流|n
+lake|湖|n
+sea|海|n
+ocean|海洋|n
+beach|海滩|n
+coast|海岸|n
+island|岛|n
+forest|森林|n
+wood|木头|n
+tree|树|n
+leaf|叶子|n
+flower|花|n
+grass|草|n
+plant|植物|n
+seed|种子|n
+root|根|n
+branch|树枝|n
+rose|玫瑰|n
+bamboo|竹子|n
+crop|庄稼|n
+field|田野|n
+desert|沙漠|n
+cave|洞穴|n
+rock|岩石|n
+stone|石头|n
+sand|沙子|n
+soil|土壤|n
+mud|泥|n
+air|空气|n
+fire|火|n
+ice|冰|n
+steam|蒸汽|n
+gas|气体|n
+coal|煤|n
+sound|声音|n
+noise|噪音|n
+heat|热量|n
+sunshine|阳光|n
+shadow|影子|n
+environment|环境|n
+pollution|污染|n
+waste|废物|n
+recycle|回收|v
+resource|资源|n
+wildlife|野生动物|n
+ecosystem|生态系统|n
+climate change|气候变化|n
+flood|洪水|n
+drought|干旱|n
+earthquake|地震|n
+typhoon|台风|n
+volcano|火山|n
+wave|波浪|n
+tide|潮汐|n
+stream|小溪|n
+waterfall|瀑布|n
+pond|池塘|n
+jungle|丛林|n
+grassland|草原|n
+wetland|湿地|n
+animal|动物|n
+dog|狗|n
+cat|猫|n
+pig|猪|n
+cow|奶牛|n
+sheep|羊|n
+goat|山羊|n
+horse|马|n
+donkey|驴|n
+rabbit|兔子|n
+mouse|老鼠|n
+bird|鸟|n
+hen|母鸡|n
+cock|公鸡|n
+duck|鸭子|n
+goose|鹅|n
+snake|蛇|n
+frog|青蛙|n
+turtle|乌龟|n
+monkey|猴子|n
+elephant|大象|n
+tiger|老虎|n
+lion|狮子|n
+bear|熊|n
+wolf|狼|n
+fox|狐狸|n
+deer|鹿|n
+giraffe|长颈鹿|n
+panda|熊猫|n
+koala|考拉|n
+kangaroo|袋鼠|n
+camel|骆驼|n
+zebra|斑马|n
+dolphin|海豚|n
+whale|鲸|n
+shark|鲨鱼|n
+penguin|企鹅|n
+eagle|鹰|n
+owl|猫头鹰|n
+parrot|鹦鹉|n
+insect|昆虫|n
+ant|蚂蚁|n
+bee|蜜蜂|n
+butterfly|蝴蝶|n
+spider|蜘蛛|n
+worm|虫子|n
+mosquito|蚊子|n
+pet|宠物|n
+tail|尾巴|n
+wing|翅膀|n
+feather|羽毛|n
+fur|皮毛|n
+nest|巢|n
+cage|笼子|n
+wild|野生的|adj
+cattle|牛|n
+time|时间|n
+hour|小时|n
+minute|分钟|n
+second|秒|n
+day|天|n
+week|周|n
+month|月|n
+year|年|n
+century|世纪|n
+decade|十年|n
+morning|早晨|n
+afternoon|下午|n
+evening|傍晚|n
+night|夜晚|n
+noon|中午|n
+midnight|午夜|n
+today|今天|n
+tomorrow|明天|n
+yesterday|昨天|n
+now|现在|adv
+soon|不久|adv
+early|早的|adj
+late|晚的|adj
+always|总是|adv
+often|经常|adv
+sometimes|有时|adv
+usually|通常|adv
+never|从不|adv
+seldom|很少|adv
+already|已经|adv
+still|仍然|adv
+yet|还|adv
+just|刚刚|adv
+ever|曾经|adv
+once|一次|adv
+twice|两次|adv
+again|再次|adv
+before|之前|adv
+after|之后|adv
+during|在…期间|prep
+while|当…时|adv
+until|直到|adv
+since|自从|adv
+ago|以前|adv
+later|后来|adv
+finally|最后|adv
+first|第一|num
+third|第三|num
+fourth|第四|num
+fifth|第五|num
+sixth|第六|num
+seventh|第七|num
+eighth|第八|num
+ninth|第九|num
+tenth|第十|num
+one|一|num
+two|二|num
+three|三|num
+four|四|num
+five|五|num
+six|六|num
+seven|七|num
+eight|八|num
+nine|九|num
+ten|十|num
+eleven|十一|num
+twelve|十二|num
+thirteen|十三|num
+fourteen|十四|num
+fifteen|十五|num
+sixteen|十六|num
+seventeen|十七|num
+eighteen|十八|num
+nineteen|十九|num
+twenty|二十|num
+thirty|三十|num
+forty|四十|num
+fifty|五十|num
+sixty|六十|num
+seventy|七十|num
+eighty|八十|num
+ninety|九十|num
+hundred|百|num
+thousand|千|num
+million|百万|num
+billion|十亿|num
+zero|零|num
+half|一半|num
+quarter|四分之一|num
+double|两倍|n
+single|单一的|adj
+pair|一对|n
+dozen|一打|n
+count|数数|v
+total|总数|n
+amount|数量|n
+percent|百分比|n
+lot|许多|n
+plenty|大量|n
+piece|一块|n
+part|部分|n
+whole|整体|n
+section|部分|n
+side|边|n
+top|顶部|n
+bottom|底部|n
+front|前面|n
+middle|中间|n
+center|中心|n
+edge|边缘|n
+end|末端|n
+beginning|开始|n
+level|水平|n
+line|线|n
+point|点|n
+circle|圆圈|n
+shape|形状|n
+angle|角|n
+surface|表面|n
+date|日期|n
+calendar|日历|n
+moment|时刻|n
+period|时期|n
+stage|阶段|n
+step|步骤|n
+be|是|v
+have|有|v
+do|做|v
+make|制作|v
+go|去|v
+come|来|v
+get|得到|v
+take|拿|v
+bring|带来|v
+carry|携带|v
+give|给|v
+send|发送|v
+receive|收到|v
+buy|买|v
+sell|卖|v
+pay|支付|v
+spend|花费|v
+cost|花费|v
+borrow|借入|v
+lend|借出|v
+keep|保持|v
+hold|握住|v
+put|放置|v
+set|设置|v
+move|移动|v
+turn|转弯|v
+open|打开|v
+close|关闭|v
+start|开始|v
+finish|完成|v
+stop|停止|v
+continue|继续|v
+pause|暂停|v
+wait|等待|v
+stay|停留|v
+leave|离开|v
+arrive|到达|v
+return|返回|v
+enter|进入|v
+exit|离开|v
+follow|跟随|v
+lead|带领|v
+meet|遇见|v
+join|加入|v
+invite|邀请|v
+welcome|欢迎|v
+greet|问候|v
+thank|感谢|v
+help|帮助|v
+protect|保护|v
+save|拯救|v
+rescue|营救|v
+serve|服务|v
+share|分享|v
+care|关心|v
+mind|介意|v
+depend|依靠|v
+belong|属于|v
+happen|发生|v
+appear|出现|v
+disappear|消失|v
+exist|存在|v
+live|居住|v
+die|死|v
+grow|生长|v
+become|变成|v
+seem|似乎|v
+look|看|v
+see|看见|v
+watch|观看|v
+notice|注意到|v
+hear|听见|v
+listen|听|v
+feel|感觉|v
+touch|触摸|v
+smell|闻|n
+taste|品尝|n
+eat|吃|v
+drink|喝|n
+cook|烹饪|v
+bake|烘烤|v
+boil|煮沸|v
+fry|油炸|v
+cut|切|v
+wash|洗|v
+clean|干净的|adj
+sweep|扫|v
+brush|刷|n
+wear|穿|v
+sleep|睡觉|v
+wake|醒来|v
+sit|坐|v
+stand|站|v
+lie|躺|v
+run|跑|v
+walk|走|v
+jump|跳|v
+swim|游泳|v
+dance|跳舞|v
+sing|唱歌|v
+play|玩|v
+climb|爬|v
+fly|飞|v
+ride|骑|v
+drive|驾驶|v
+hurry|匆忙|v
+rush|冲|v
+kick|踢|v
+throw|扔|v
+catch|抓住|v
+hit|打|v
+beat|打败|v
+win|赢|v
+lose|输|v
+fight|战斗|v
+shout|喊|v
+cry|哭|v
+laugh|笑|v
+speak|说|v
+talk|交谈|v
+say|说|v
+tell|告诉|v
+ask|问|v
+answer|回答|v
+reply|回复|v
+repeat|重复|v
+explain|解释|v
+describe|描述|v
+discuss|讨论|v
+agree|同意|v
+disagree|不同意|v
+refuse|拒绝|v
+accept|接受|v
+allow|允许|v
+let|让|v
+forbid|禁止|v
+promise|承诺|v
+decide|决定|v
+choose|选择|v
+pick|挑选|v
+want|想要|v
+need|需要|v
+hope|希望|n
+expect|期待|v
+plan|计划|n
+try|尝试|v
+practice|练习|v
+train|训练|n
+teach|教|v
+learn|学会|v
+study|学习|v
+read|阅读|v
+write|写作|v
+draw|画|v
+paint|绘画|v
+print|打印|v
+copy|复制|v
+spell|拼写|v
+pronounce|发音|v
+translate|翻译|v
+remember|记得|v
+forget|忘记|v
+understand|理解|v
+know|知道|v
+think|思考|v
+believe|相信|v
+guess|猜|v
+wonder|想知道|v
+realize|意识到|v
+imagine|想象|v
+consider|考虑|v
+compare|比较|v
+check|检查|v
+test|测试|n
+correct|正确的|adj
+mark|标记|v
+calculate|计算|v
+solve|解决|v
+deal|处理|n
+manage|管理|v
+organize|组织|v
+prepare|准备|v
+arrange|安排|v
+provide|提供|v
+collect|收集|v
+gather|聚集|v
+deliver|递送|v
+post|邮寄|v
+call|打电话|v
+ring|响铃|v
+text|文本|n
+chat|聊天|v
+visit|参观|v
+introduce|介绍|v
+show|展示|v
+hide|隐藏|v
+cover|覆盖|v
+fill|装满|v
+add|添加|v
+mix|混合|v
+connect|连接|v
+separate|分开|v
+combine|结合|v
+build|建造|v
+create|创造|v
+invent|发明|v
+discover|发现|v
+find|找到|v
+search|搜索|v
+miss|想念|v
+drop|掉落|v
+fall|落下|v
+rise|上升|v
+raise|举起|v
+push|推|v
+pull|拉|v
+point|指|n
+wave|挥手|n
+nod|点头|v
+shake|摇动|v
+kiss|亲吻|v
+hug|拥抱|v
+worry|担心|n
+fear|害怕|n
+hate|讨厌|n
+love|爱|n
+like|喜欢|v
+enjoy|享受|v
+prefer|更喜欢|v
+surprise|使惊讶|n
+excite|使兴奋|v
+bore|使厌烦|v
+relax|放松|v
+breathe|呼吸|v
+sneeze|打喷嚏|v
+hurt|受伤|v
+injure|使受伤|v
+cure|治愈|v
+improve|改善|v
+develop|发展|v
+increase|增加|v
+reduce|减少|v
+remain|保持|v
+last|持续|v
+survive|幸存|v
+waste|浪费|n
+use|使用|v
+earn|赚取|v
+afford|负担得起|v
+own|拥有|v
+store|储存|v
+shut|关闭|v
+complete|完成|v
+suggest|建议|v
+advise|建议|v
+warn|警告|v
+remind|提醒|v
+encourage|鼓励|v
+praise|表扬|v
+blame|责备|v
+punish|惩罚|v
+apologize|道歉|v
+forgive|原谅|v
+respect|尊重|n
+trust|信任|n
+doubt|怀疑|v
+argue|争论|v
+quarrel|争吵|v
+score|得分|n
+celebrate|庆祝|v
+compete|竞争|v
+contribute|贡献|v
+communicate|交流|v
+express|表达|v
+perform|表演|v
+influence|影响|v
+affect|影响|v
+prevent|阻止|v
+avoid|避免|v
+escape|逃跑|v
+chase|追赶|v
+guide|引导|n
+direct|指路|v
+matter|要紧|v
+fit|适合|v
+suit|适合|v
+match|匹配|v
+obey|遵守|v
+break|打破|n
+fix|修理|v
+repair|修理|v
+mend|修补|v
+dig|挖|v
+plant|种植|n
+water|浇水|n
+feed|喂养|v
+measure|测量|v
+weigh|称重|v
+divide|划分|v
+multiply|乘|v
+subtract|减去|v
+recommend|推荐|v
+complain|抱怨|v
+congratulate|祝贺|v
+interview|采访|n
+publish|出版|v
+record|录制|v
+broadcast|广播|v
+report|报道|n
+review|复习|v
+preview|预习|v
+revise|复习|v
+memorize|记住|v
+recite|背诵|v
+graduate|毕业|v
+enroll|注册|v
+apply|申请|v
+hire|雇佣|v
+fire|解雇|n
+retire|退休|v
+donate|捐赠|v
+vote|投票|v
+protest|抗议|v
+defend|保卫|v
+attack|攻击|v
+shoot|射击|v
+release|释放|v
+arrest|逮捕|v
+judge|判断|v
+sentence|判决|n
+big|大的|adj
+small|小的|adj
+large|大的|adj
+little|小的|adj
+huge|巨大的|adj
+tiny|微小的|adj
+long|长的|adj
+short|短的|adj
+tall|高的|adj
+high|高的|adj
+low|低的|adj
+wide|宽的|adj
+narrow|窄的|adj
+deep|深的|adj
+shallow|浅的|adj
+thick|厚的|adj
+thin|薄的|adj
+heavy|重的|adj
+fast|快的|adj
+quick|快的|adj
+slow|慢的|adj
+new|新的|adj
+old|旧的|adj
+young|年轻的|adj
+modern|现代的|adj
+ancient|古代的|adj
+good|好的|adj
+bad|坏的|adj
+better|更好的|adj
+best|最好的|adj
+worse|更差的|adj
+worst|最差的|adj
+great|伟大的|adj
+excellent|优秀的|adj
+perfect|完美的|adj
+nice|好的|adj
+fine|好的|adj
+wonderful|精彩的|adj
+amazing|令人惊奇的|adj
+terrible|糟糕的|adj
+awful|糟糕的|adj
+important|重要的|adj
+necessary|必要的|adj
+useful|有用的|adj
+useless|无用的|adj
+helpful|有帮助的|adj
+careful|仔细的|adj
+careless|粗心的|adj
+easy|容易的|adj
+hard|困难的|adj
+difficult|困难的|adj
+simple|简单的|adj
+complex|复杂的|adj
+busy|忙的|adj
+free|空闲的|adj
+ready|准备好的|adj
+available|可获得的|adj
+possible|可能的|adj
+impossible|不可能的|adj
+real|真实的|adj
+true|真的|adj
+false|假的|adj
+wrong|错误的|adj
+same|相同的|adj
+different|不同的|adj
+similar|相似的|adj
+special|特别的|adj
+common|常见的|adj
+usual|通常的|adj
+unusual|不寻常的|adj
+normal|正常的|adj
+strange|奇怪的|adj
+funny|有趣的|adj
+interesting|有趣的|adj
+boring|无聊的|adj
+exciting|令人兴奋的|adj
+surprising|令人惊讶的|adj
+popular|受欢迎的|adj
+famous|著名的|adj
+successful|成功的|adj
+lucky|幸运的|adj
+unlucky|不幸的|adj
+happy|快乐的|adj
+sad|悲伤的|adj
+angry|生气的|adj
+afraid|害怕的|adj
+scared|恐惧的|adj
+nervous|紧张的|adj
+worried|担心的|adj
+excited|兴奋的|adj
+tired|疲劳的|adj
+sleepy|困倦的|adj
+proud|自豪的|adj
+ashamed|羞愧的|adj
+jealous|嫉妒的|adj
+lonely|孤独的|adj
+friendly|友好的|adj
+kind|善良的|adj
+polite|有礼貌的|adj
+rude|粗鲁的|adj
+honest|诚实的|adj
+dishonest|不诚实的|adj
+brave|勇敢的|adj
+shy|害羞的|adj
+quiet|安静的|adj
+noisy|吵闹的|adj
+calm|平静的|adj
+lazy|懒惰的|adj
+hardworking|勤奋的|adj
+clever|聪明的|adj
+smart|聪明的|adj
+stupid|愚蠢的|adj
+wise|明智的|adj
+silly|傻的|adj
+serious|严肃的|adj
+strict|严格的|adj
+generous|慷慨的|adj
+selfish|自私的|adj
+confident|自信的|adj
+curious|好奇的|adj
+creative|有创造力的|adj
+active|积极的|adj
+positive|积极的|adj
+negative|消极的|adj
+strong|强壮的|adj
+weak|虚弱的|adj
+healthy|健康的|adj
+sick|生病的|adj
+ill|生病的|adj
+safe|安全的|adj
+dangerous|危险的|adj
+rich|富有的|adj
+poor|贫穷的|adj
+expensive|昂贵的|adj
+cheap|便宜的|adj
+valuable|有价值的|adj
+clean|干净的|adj
+dirty|脏的|adj
+empty|空的|adj
+closed|关闭的|adj
+hot|热的|adj
+cold|寒冷的|adj
+warm|温暖的|adj
+cool|凉爽的|adj
+dry|干燥的|adj
+wet|潮湿的|adj
+sunny|晴朗的|adj
+cloudy|多云的|adj
+rainy|下雨的|adj
+snowy|下雪的|adj
+windy|有风的|adj
+foggy|有雾的|adj
+stormy|暴风雨的|adj
+electric|电动的|adj
+digital|数字的|adj
+local|当地的|adj
+national|国家的|adj
+international|国际的|adj
+foreign|外国的|adj
+traditional|传统的|adj
+cultural|文化的|adj
+natural|自然的|adj
+medical|医学的|adj
+physical|身体的|adj
+mental|精神的|adj
+social|社会的|adj
+personal|个人的|adj
+private|私人的|adj
+public|公共的|adj
+main|主要的|adj
+major|主要的|adj
+minor|次要的|adj
+recent|最近的|adj
+daily|日常的|adj
+weekly|每周的|adj
+monthly|每月的|adj
+yearly|每年的|adj
+final|最终的|adj
+entire|整个的|adj
+only|唯一的|adj
+certain|确定的|adj
+sure|确信的|adj
+able|能够的|adj
+alone|独自的|adj
+asleep|睡着的|adj
+awake|醒着的|adj
+alive|活着的|adj
+dead|死的|adj
+married|已婚的|adj
+blind|盲的|adj
+deaf|聋的|adj
+disabled|残疾的|adj
+ordinary|普通的|adj
+favorite|最喜爱的|adj
+pleasant|令人愉快的|adj
+comfortable|舒适的|adj
+convenient|方便的|adj
+crowded|拥挤的|adj
+loud|大声的|adj
+clear|清楚的|adj
+obvious|明显的|adj
+exact|精确的|adj
+correct|正确的|adj
+independent|独立的|adj
+responsible|负责的|adj
+patient|有耐心的|n
+impatient|不耐烦的|adj
+mature|成熟的|adj
+childish|幼稚的|adj
+gentle|温柔的|adj
+violent|暴力的|adj
+peaceful|和平的|adj
+silent|沉默的|adj
+sudden|突然的|adj
+gradual|逐渐的|adj
+frequent|频繁的|adj
+rare|稀有的|adj
+regular|规律的|adj
+irregular|不规律的|adj
+formal|正式的|adj
+informal|非正式的|adj
+probable|很可能的|adj
+very|非常|adv
+quite|相当|adv
+rather|相当|adv
+too|太|adv
+so|如此|adv
+such|这样的|adj
+much|很多|adv
+many|许多|adj
+more|更多|adv
+most|最多|adv
+less|更少|adv
+least|最少|adv
+few|很少|adj
+enough|足够的|adj
+almost|几乎|adv
+nearly|几乎|adv
+hardly|几乎不|adv
+even|甚至|adv
+together|一起|adv
+instead|代替|adv
+however|然而|adv
+therefore|因此|adv
+besides|此外|adv
+otherwise|否则|adv
+perhaps|也许|adv
+maybe|也许|adv
+probably|大概|adv
+certainly|当然|adv
+actually|实际上|adv
+especially|尤其|adv
+suddenly|突然|adv
+immediately|立刻|adv
+recently|最近|adv
+here|这里|adv
+there|那里|adv
+everywhere|到处|adv
+somewhere|某处|adv
+anywhere|任何地方|adv
+nowhere|无处|adv
+inside|在里面|adv
+outside|在外面|adv
+above|在上方|adv
+below|在下方|adv
+up|向上|adv
+down|向下|adv
+far|远|adv
+near|近|adv
+forward|向前|adv
+backward|向后|adv
+ahead|向前|adv
+around|周围|adv
+along|沿着|prep
+across|穿过|prep
+through|穿过|prep
+over|在上方|adv
+under|在下方|prep
+between|在…之间|prep
+among|在…之中|prep
+behind|在后面|prep
+beside|在旁边|prep
+except|除了|prep
+without|没有|prep
+within|在…之内|prep
+against|反对|prep
+toward|朝向|prep
+upon|在…上|prep
+abroad|在国外|adv
+home|回家|n
+upstairs|楼上|adv
+downstairs|楼下|adv
+indoors|在室内|adv
+outdoors|在户外|adv
+anyway|无论如何|adv
+likewise|同样地|adv
+meanwhile|同时|adv
+moreover|而且|adv
+nevertheless|然而|adv
+I|我|pron
+you|你|pron
+he|他|pron
+she|她|pron
+it|它|pron
+we|我们|pron
+they|他们|pron
+me|我（宾格）|pron
+him|他（宾格）|pron
+us|我们（宾格）|pron
+them|他们（宾格）|pron
+my|我的|pron
+your|你的|pron
+his|他的|pron
+her|她的|pron
+its|它的|pron
+our|我们的|pron
+their|他们的|pron
+mine|我的（名词性）|pron
+yours|你的（名词性）|pron
+hers|她的（名词性）|pron
+ours|我们的（名词性）|pron
+theirs|他们的（名词性）|pron
+myself|我自己|pron
+yourself|你自己|pron
+himself|他自己|pron
+herself|她自己|pron
+itself|它自己|pron
+ourselves|我们自己|pron
+yourselves|你们自己|pron
+themselves|他们自己|pron
+who|谁|pron
+whom|谁（宾格）|pron
+whose|谁的|pron
+what|什么|pron
+which|哪一个|pron
+when|什么时候|adv
+where|哪里|adv
+why|为什么|adv
+how|怎样|adv
+this|这个|pron
+that|那个|pron
+these|这些|pron
+those|那些|pron
+some|一些|pron
+any|任何|pron
+no|没有|adv
+none|没有一个|pron
+all|全部|pron
+both|两者都|pron
+either|两者之一|pron
+neither|两者都不|pron
+each|每个|pron
+every|每个|pron
+other|其他的|adj
+another|另一个|pron
+others|其他人|pron
+someone|某人|pron
+anyone|任何人|pron
+everyone|每个人|pron
+something|某事|pron
+anything|任何事|pron
+everything|一切|pron
+nothing|没有什么|pron
+somebody|某人|pron
+anybody|任何人|pron
+everybody|每个人|pron
+nobody|没有人|pron
+a|一个|art
+an|一个|art
+the|这个|art
+and|和|conj
+but|但是|conj
+or|或者|conj
+because|因为|conj
+if|如果|conj
+unless|除非|conj
+although|虽然|conj
+though|虽然|conj
+as|作为|conj
+than|比|conj
+whether|是否|conj
+in|在…里|prep
+on|在…上|prep
+at|在|prep
+to|到|prep
+for|为了|prep
+of|…的|prep
+with|和…一起|prep
+by|通过|prep
+from|从|prep
+about|关于|prep
+into|进入|prep
+onto|到…上|prep
+out|出去|adv
+off|离开|adv
+per|每|prep
+via|经由|prep
+despite|尽管|prep
+throughout|遍及|prep
+beneath|在…下方|prep
+beyond|超过|prep
+accident|事故|n
+activity|活动|n
+advertisement|广告|n
+advice|忠告|n
+agreement|协议|n
+aid|援助|n
+alarm|警报|n
+album|相册|n
+apartment|公寓|n
+apology|道歉|n
+appearance|外貌|n
+application|申请|n
+appointment|约会|n
+argument|争论|n
+arrival|到达|n
+athlete|运动员|n
+author|作者|n
+average|平均|n
+award|奖品|n
+background|背景|n
+balance|平衡|n
+battle|战斗|n
+behavior|行为|n
+belief|信念|n
+benefit|好处|n
+birth|出生|n
+board|木板|n
+border|边界|n
+building|建筑物|n
+businessman|商人|n
+cafe|咖啡馆|n
+case|情况|n
+cause|原因|n
+celebration|庆祝|n
+challenge|挑战|n
+channel|频道|n
+chapter|章节|n
+character|性格|n
+chart|图表|n
+chef|厨师|n
+chess|国际象棋|n
+childhood|童年|n
+choice|选择|n
+church|教堂|n
+clerk|职员|n
+clinic|诊所|n
+club|俱乐部|n
+collection|收藏|n
+comedy|喜剧|n
+comment|评论|n
+competition|竞争|n
+complaint|投诉|n
+concert|音乐会|n
+condition|条件|n
+conference|会议|n
+conflict|冲突|n
+connection|联系|n
+contact|联系|n
+contest|比赛|n
+context|语境|n
+conversation|对话|n
+cottage|小屋|n
+countryside|乡村|n
+court|法庭|n
+crash|碰撞|n
+creation|创造|n
+crime|犯罪|n
+cycle|循环|n
+debate|辩论|n
+description|描述|n
+design|设计|n
+destination|目的地|n
+detail|细节|n
+diary|日记|n
+difference|差别|n
+difficulty|困难|n
+disaster|灾难|n
+discussion|讨论|n
+effort|努力|n
+emergency|紧急情况|n
+enemy|敌人|n
+entrance|入口|n
+event|事件|n
+exchange|交换|n
+expense|费用|n
+experiment|实验|n
+expert|专家|n
+explanation|解释|n
+fact|事实|n
+fault|过错|n
+favor|恩惠|n
+fee|费用|n
+figure|数字|n
+flight|航班|n
+focus|焦点|n
+form|形式|n
+fortune|财富|n
+fountain|喷泉|n
+function|功能|n
+gap|差距|n
+garbage|垃圾|n
+goods|商品|n
+graduation|毕业|n
+growth|增长|n
+harvest|收获|n
+headline|标题|n
+hobby|爱好|n
+honor|荣誉|n
+hunger|饥饿|n
+identity|身份|n
+image|形象|n
+impact|影响|n
+impression|印象|n
+incident|事件|n
+income|收入|n
+instruction|说明|n
+instrument|乐器|n
+insurance|保险|n
+intention|意图|n
+invention|发明|n
+issue|问题|n
+item|项目|n
+lack|缺乏|n
+language|语言|n
+laughter|笑声|n
+lecture|讲座|n
+leisure|休闲|n
+limit|限制|n
+link|链接|n
+location|位置|n
+loss|损失|n
+luck|运气|n
+magic|魔法|n
+manner|方式|n
+master|大师|n
+material|材料|n
+media|媒体|n
+mention|提及|n
+method|方法|n
+mission|任务|n
+model|模型|n
+movement|运动|n
+mystery|谜|n
+nation|民族|n
+network|网络|n
+object|物体|n
+objective|目标|n
+occasion|场合|n
+opinion|观点|n
+opportunity|机会|n
+opposite|相反|n
+option|选择|n
+organization|组织|n
+origin|起源|n
+owner|主人|n
+package|包裹|n
+painting|绘画|n
+payment|付款|n
+percentage|百分比|n
+performance|表演|n
+personality|个性|n
+photograph|照片|n
+phrase|短语|n
+pity|遗憾|n
+place|地方|n
+position|位置|n
+power|力量|n
+preparation|准备|n
+pressure|压力|n
+process|过程|n
+program|节目|n
+purpose|目的|adj
+race|比赛|n
+reason|原因|n
+recipe|食谱|n
+reference|参考|n
+region|地区|n
+regret|后悔|n
+relation|关系|n
+relationship|关系|n
+request|请求|n
+requirement|要求|n
+research|研究|n
+reservation|预订|n
+resident|居民|n
+response|回应|n
+responsibility|责任|n
+reward|奖励|n
+risk|风险|n
+role|角色|n
+routine|日常|n
+sample|样品|n
+scene|场景|n
+scream|尖叫|n
+script|剧本|n
+secret|秘密|n
+sense|感觉|n
+series|系列|n
+shock|震惊|n
+sight|视力|n
+signal|信号|n
+situation|情况|n
+solution|解决方案|n
+source|来源|n
+speech|演讲|n
+speed|速度|n
+spread|传播|v
+state|状态|n
+statement|陈述|n
+strength|力量|n
+struggle|斗争|n
+stuff|东西|n
+suggestion|建议|n
+summary|总结|n
+supply|供应|n
+survey|调查|n
+symbol|象征|n
+system|系统|n
+target|目标|n
+technique|技巧|n
+text|文本|n
+threat|威胁|n
+throat|喉咙|n
+training|训练|n
+transport|运输|n
+treat|对待|v
+trend|趋势|n
+trial|试验|n
+trick|把戏|n
+trouble|麻烦|n
+truth|真相|n
+type|类型|n
+unit|单元|n
+universe|宇宙|n
+variety|多样性|n
+vehicle|车辆|n
+version|版本|n
+victim|受害者|n
+victory|胜利|n
+view|观点|n
+violence|暴力|n
+vision|视力|n
+volume|音量|n
+wage|工资|n
+warning|警告|n
+wealth|财富|n
+will|将（将来）|modal
+witness|目击者|n
+wonder|奇迹|v
+worth|价值|n
+youth|青年|n
+can|能|modal
+could|能（过去式）|modal
+may|可以|modal
+might|可能|modal
+must|必须|modal
+should|应该|modal
+would|将会|modal
+shall|将要|modal
+not|不|adv
+hello|你好|int
+hi|嗨|int
+goodbye|再见|int
+please|请|int
+sorry|对不起|adj
+thanks|谢谢|int
+yes|是的|adv
+okay|好的|int
+OK|好的|int
+willpower|意志力|n
+quickly|迅速地|adv
+slowly|缓慢地|adv
+well|好地|adv
+badly|糟糕地|adv
+carefully|仔细地|adv
+easily|容易地|adv
+happily|快乐地|adv
+luckily|幸运地|adv
+sadly|悲伤地|adv
+safely|安全地|adv
+loudly|大声地|adv
+quietly|安静地|adv
+politely|礼貌地|adv
+properly|正确地|adv|n
+rights|权利|n
+diploma|文凭|n
+`;
+
+const PHRASE_RAW = `
+look after|照顾
+look for|寻找
+look at|看
+look up|查阅
+look forward to|期待
+look like|看起来像
+take care of|照顾
+take part in|参加
+take place|发生
+take away|拿走
+take off|脱下
+take out|取出
+take up|开始从事
+put on|穿上
+put off|推迟
+put away|收好
+put up|举起
+give up|放弃
+give away|赠送
+give back|归还
+give in|屈服
+turn on|打开
+turn off|关闭
+turn up|调高
+turn down|调低
+turn into|变成
+get up|起床
+get on|上车
+get off|下车
+get along with|与…相处
+get ready|准备好
+get together|聚会
+get back|回来
+go on|继续
+go out|出去
+go over|复习
+go through|经历
+come in|进来
+come back|回来
+come from|来自
+come true|实现
+come up with|想出
+find out|查明
+figure out|弄明白
+work out|解决
+carry out|执行
+break down|出故障
+break up|分手
+break out|爆发
+set up|建立
+set off|出发
+set out|出发
+run out of|用完
+run away|逃跑
+pick up|捡起
+wake up|醒来
+hurry up|赶快
+clean up|打扫
+cheer up|振作
+grow up|长大
+show up|出现
+stay up|熬夜
+eat up|吃光
+use up|用完
+make up|组成
+make sure|确保
+make friends|交朋友
+make a decision|做决定
+make a difference|有影响
+make progress|取得进步
+make mistakes|犯错
+make money|赚钱
+make sense|讲得通
+pay attention to|注意
+play a role|起作用
+play with|玩耍
+depend on|依靠
+rely on|依赖
+focus on|专注于
+insist on|坚持
+belong to|属于
+listen to|听
+talk about|谈论
+think about|考虑
+think of|想起
+worry about|担心
+care about|关心
+hear from|收到…的来信
+hear of|听说
+wait for|等待
+ask for|请求
+be good at|擅长
+be interested in|对…感兴趣
+be afraid of|害怕
+be proud of|为…骄傲
+be famous for|因…而著名
+be full of|充满
+be busy with|忙于
+be different from|与…不同
+be similar to|与…相似
+be used to|习惯于
+be worth|值得
+as soon as|一…就
+as well as|也
+at least|至少
+at first|起初
+at last|最后
+at once|立刻
+at present|目前
+by accident|偶然
+by mistake|错误地
+in fact|事实上
+in front of|在…前面
+in the end|最后
+in time|及时
+on time|准时
+on foot|步行
+on purpose|故意
+right away|立刻
+all the time|一直
+from time to time|不时
+so far|到目前为止
+such as|例如
+thanks to|多亏
+instead of|代替
+according to|根据
+because of|因为
+as a result|结果
+for example|例如
+first of all|首先
+after all|毕竟
+once upon a time|从前
+no longer|不再
+not at all|一点也不
+of course|当然
+by the way|顺便说
+in a word|总之
+in other words|换句话说
+have fun|玩得开心
+have to|不得不
+had better|最好
+would like|想要
+be going to|打算
+used to|过去常常
+too much|太多
+a lot of|许多
+a little|一点儿
+a few|几个
+each other|互相
+one another|彼此
+the other day|前几天
+day and night|日夜
+side by side|并排
+face to face|面对面
+little by little|逐渐地
+step by step|一步一步地
+sooner or later|迟早
+more or less|或多或少
+all over|遍及
+around the world|全世界
+at home|在家
+at school|在学校
+at work|在工作
+in public|公开地
+in danger|处于危险中
+in trouble|处于困境中
+on holiday|度假
+on sale|出售
+on show|展出
+out of date|过时
+up to date|最新的
+`;
+
+function parseData(raw){
+  const out = [];
+  const seen = new Set();
+  raw.split('\n').forEach(line => {
+    line = line.trim();
+    const parts = line.split('|');
+    if(parts.length < 2) return;
+    const en = parts[0].trim();
+    const zh = parts[1].trim();
+    const pos = (parts[2] || '').trim();
+    if(!en || !zh) return;
+    const k = en.toLowerCase();
+    if(seen.has(k)) return;
+    seen.add(k);
+    out.push({ en, zh, pos });
+  });
+  return out;
+}
+
+const WORDS = parseData(WORD_RAW);
+const PHRASES = parseData(PHRASE_RAW);
+
+/* ================= 常量与状态 ================= */
+const $ = id => document.getElementById(id);
+const leftCol = $('left'), rightCol = $('right'), svg = $('lines');
+const ERR_KEY = 'english_match_errors_v1';
+const PREF_KEY = 'english_match_prefs_v1';
+
+const HINTS = {
+  word: '把英文单词和它的中文意思配对。点英文卡片可以听发音。',
+  phrase: '把英文短语和它的中文意思配对。',
+  review: '错词复习：配对正确，这个词就会从错词本里移除。'
+};
+
+const POS_LABEL = {
+  n: 'n. 名词',
+  v: 'v. 动词',
+  adj: 'adj. 形容词',
+  adv: 'adv. 副词',
+  pron: 'pron. 代词',
+  prep: 'prep. 介词',
+  conj: 'conj. 连词',
+  art: 'art. 冠词',
+  num: 'num. 数词',
+  int: 'int. 感叹词',
+  modal: 'modal v. 情态动词'
+};
+
+function posText(pos){ return POS_LABEL[pos] || pos || ''; }
+
+let mode = 'word';
+let pairs = [];
+let matched = 0, score = 0, combo = 0, hits = 0, misses = 0;
+let roundNo = 1, completedRounds = 0;
+let sel = null, lock = false, gen = 0;
+const recent = { word: [], phrase: [] };
+
+let ttsOn = true, sfxOn = true;
+
+/* ================= 小工具 ================= */
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function shuffle(a){
+  a = a.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ================= 偏好设置 ================= */
+(function loadPrefs(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
+    if(p.tts === false) ttsOn = false;
+    if(p.sfx === false) sfxOn = false;
+  }catch(e){}
+})();
+function savePrefs(){
+  try{ localStorage.setItem(PREF_KEY, JSON.stringify({ tts: ttsOn, sfx: sfxOn })); }catch(e){}
+}
+
+/* ================= 错词本 ================= */
+let errors = [];
+try{
+  const raw = JSON.parse(localStorage.getItem(ERR_KEY) || '[]');
+  errors = Array.isArray(raw) ? raw : [];
+}catch(e){ errors = []; }
+
+function saveErrors(){
+  try{ localStorage.setItem(ERR_KEY, JSON.stringify(errors)); }catch(e){}
+}
+function addError(en, zh, wrong, pos){
+  if(!en || !zh) return;
+  const hit = errors.find(x => String(x.en).toLowerCase() === String(en).toLowerCase());
+  if(hit){
+    hit.n = (hit.n || 1) + 1;
+    hit.wrong = wrong || '';
+    hit.zh = zh;
+    if(pos) hit.pos = pos;
+    hit.ts = Date.now();
+  }else{
+    errors.push({ en, zh, wrong: wrong || '', pos: pos || '', n: 1, ts: Date.now() });
+  }
+  errors.sort((a, b) => (b.n || 1) - (a.n || 1) || (b.ts || 0) - (a.ts || 0));
+  if(errors.length > 300) errors.length = 300;
+  saveErrors();
+  updateBookBadge();
+}
+function removeError(en){
+  const key = String(en).toLowerCase();
+  errors = errors.filter(x => String(x.en).toLowerCase() !== key);
+  saveErrors();
+  updateBookBadge();
+}
+function updateBookBadge(){
+  $('bookCount').textContent = errors.length;
+  $('bookBtn').classList.toggle('has-err', errors.length > 0);
+}
+
+/* ================= 发音（TTS） ================= */
+let voices = [];
+function refreshVoices(){
+  try{
+    voices = ('speechSynthesis' in window) ? window.speechSynthesis.getVoices() : [];
+  }catch(e){ voices = []; }
+}
+if('speechSynthesis' in window){
+  refreshVoices();
+  try{ window.speechSynthesis.addEventListener('voiceschanged', refreshVoices); }catch(e){}
+}
+const PREFERRED_VOICE = /samantha|alex|aria|zira|google us english|google uk english female|karen|daniel/i;
+
+function speak(text){
+  if(!ttsOn || !text) return;
+  if(!('speechSynthesis' in window)) return;
+  try{
+    const synth = window.speechSynthesis;
+    if(synth.speaking || synth.pending) synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.9;
+    u.pitch = 1;
+    u.volume = 1;
+    if(!voices.length) refreshVoices();
+    const v = voices.find(x => /^en[-_]US/i.test(x.lang) && PREFERRED_VOICE.test(x.name))
+      || voices.find(x => /^en[-_]US/i.test(x.lang))
+      || voices.find(x => /^en/i.test(x.lang));
+    if(v) u.voice = v;
+    synth.speak(u);
+  }catch(e){}
+}
+
+/* ================= 音效 ================= */
+let ac = null;
+function tone(freq, dur, type, vol){
+  if(!sfxOn) return;
+  try{
+    if(!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if(ac.state === 'suspended') ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || .05, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+    o.connect(g);
+    g.connect(ac.destination);
+    o.start();
+    o.stop(ac.currentTime + dur);
+  }catch(e){}
+}
+function ding(c){ tone(1320 + Math.min(c, 8) * 35, .16, 'sine', .05); }
+function buzz(){ tone(150, .12, 'sawtooth', .045); }
+
+/* ================= 抽词 ================= */
+function sampleFrom(pool, n, scope){
+  const r = recent[scope];
+  let cand = pool.filter(p => r.indexOf(p.en) === -1);
+  if(cand.length < n * 4){ r.length = 0; cand = pool.slice(); }
+
+  const picked = [], usedEn = new Set(), usedZh = new Set();
+  let guard = 0;
+  while(picked.length < n && guard++ < 3000){
+    const p = cand[Math.floor(Math.random() * cand.length)];
+    if(!p) break;
+    if(usedEn.has(p.en) || usedZh.has(p.zh)) continue;
+    usedEn.add(p.en);
+    usedZh.add(p.zh);
+    picked.push(p);
+    r.push(p.en);
+    if(r.length > 80) r.shift();
+  }
+  return picked;
+}
+
+/* ================= 渲染 ================= */
+function posOf(en){
+  const k = String(en).toLowerCase();
+  const w = WORDS.find(x => x.en.toLowerCase() === k);
+  return w ? (w.pos || '') : '';
+}
+
+function makeTile(p, idx, side){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'tile ' + (side === 'left' ? 'en' : 'zh');
+  b.dataset.idx = idx;
+  b.dataset.side = side;
+  b.dataset.lang = side === 'left' ? 'en' : 'zh';
+  b.dataset.en = p.en;
+  b.dataset.zh = p.zh;
+  b.dataset.pos = p.pos || '';
+
+  if(side === 'left'){
+    const word = document.createElement('span');
+    word.className = 'word';
+    word.textContent = p.en;
+    b.appendChild(word);
+    if(p.pos){
+      const tag = document.createElement('span');
+      tag.className = 'pos';
+      tag.textContent = posText(p.pos);
+      b.appendChild(tag);
+    }
+  }else{
+    b.textContent = p.zh;
+  }
+
+  b.addEventListener('click', () => onTile(b));
+  return b;
+}
+
+function buildRound(){
+  gen++;
+  hideToast();
+
+  if(mode === 'review'){
+    pairs = errors.slice(0, 6).map(e => ({ en: e.en, zh: e.zh, pos: e.pos || posOf(e.en) }));
+    if(pairs.length < 2){
+      enterMode('word', false);
+      flash('错词本里的词还不够，先玩几组吧');
+      return;
+    }
+  }else if(mode === 'phrase'){
+    pairs = sampleFrom(PHRASES, 6, 'phrase');
+  }else{
+    pairs = sampleFrom(WORDS, 6, 'word');
+  }
+
+  pairs = pairs.map((p, i) => ({ en: p.en, zh: p.zh, pos: p.pos || '', idx: i }));
+
+  matched = 0;
+  sel = null;
+  lock = false;
+  leftCol.innerHTML = '';
+  rightCol.innerHTML = '';
+  svg.innerHTML = '';
+
+  const left = shuffle(pairs.map((p, i) => ({ p, i })));
+  const right = shuffle(pairs.map((p, i) => ({ p, i })));
+
+  left.forEach(x => leftCol.appendChild(makeTile(x.p, x.i, 'left')));
+  right.forEach(x => rightCol.appendChild(makeTile(x.p, x.i, 'right')));
+
+  $('matched').textContent = 0;
+  $('total').textContent = pairs.length;
+  $('round').textContent = roundNo;
+}
+
+function updateStats(){
+  $('score').textContent = score;
+  $('combo').textContent = combo;
+  $('matched').textContent = matched;
+  const total = hits + misses;
+  $('acc').textContent = total ? Math.round(hits * 100 / total) + '%' : '—';
+}
+
+/* ================= 交互 ================= */
+function select(el){
+  sel = el;
+  el.classList.add('sel');
+  if(el.dataset.lang === 'en') speak(el.dataset.en);
+}
+function deselect(){
+  if(sel) sel.classList.remove('sel');
+  sel = null;
+}
+
+function onTile(el){
+  if(lock || el.classList.contains('gone')) return;
+  if(!sel){ select(el); return; }
+  if(sel === el){ deselect(); return; }
+  if(sel.dataset.side === el.dataset.side){ deselect(); select(el); return; }
+  if(sel.dataset.idx === el.dataset.idx) match(sel, el);
+  else wrong(sel, el);
+}
+
+function match(a, b){
+  lock = true;
+  const myGen = gen;
+
+  a.classList.add('ok');
+  b.classList.add('ok');
+  drawLine(a, b);
+
+  score += 10 + Math.min(combo, 8) * 2;
+  combo++;
+  hits++;
+  matched++;
+  updateStats();
+  ding(combo);
+
+  if(mode === 'review') removeError(a.dataset.en);
+
+  setTimeout(() => {
+    if(myGen !== gen) return;
+    a.classList.add('gone');
+    b.classList.add('gone');
+    a.classList.remove('ok', 'sel');
+    b.classList.remove('ok', 'sel');
+    svg.innerHTML = '';
+    lock = false;
+    deselect();
+
+    if(matched === pairs.length){
+      roundNo++;
+      completedRounds++;
+      const milestone = completedRounds % 5 === 0;
+      showToast(milestone ? '完成 ' + completedRounds + ' 组 · 得分 ' + score : '本组完成！');
+      setTimeout(() => {
+        if(myGen !== gen) return;
+        hideToast();
+        if(mode === 'review' && errors.length < 2){
+          enterMode('word', false);
+          flash('错词复习完成');
+        }else{
+          buildRound();
+        }
+      }, milestone ? 1100 : 800);
+    }
+  }, 420);
+}
+
+function wrong(a, b){
+  lock = true;
+  const myGen = gen;
+
+  a.classList.add('bad');
+  b.classList.add('bad');
+  misses++;
+  combo = 0;
+  updateStats();
+  buzz();
+
+  const enEl = a.dataset.lang === 'en' ? a : b;
+  const zhEl = enEl === a ? b : a;
+  addError(enEl.dataset.en, enEl.dataset.zh, zhEl.textContent, enEl.dataset.pos);
+
+  setTimeout(() => {
+    if(myGen !== gen) return;
+    a.classList.remove('bad', 'sel');
+    b.classList.remove('bad', 'sel');
+    lock = false;
+    deselect();
+  }, 380);
+}
+
+function drawLine(a, b){
+  const board = $('board').getBoundingClientRect();
+  const ar = a.getBoundingClientRect();
+  const br = b.getBoundingClientRect();
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  const ax = ar.right - board.left, ay = ar.top + ar.height / 2 - board.top;
+  const bx = br.left - board.left, by = br.top + br.height / 2 - board.top;
+  line.setAttribute('x1', Math.min(ax, bx));
+  line.setAttribute('y1', ay);
+  line.setAttribute('x2', Math.max(ax, bx));
+  line.setAttribute('y2', by);
+  line.setAttribute('stroke', '#2E8B57');
+  line.setAttribute('stroke-width', '3');
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('opacity', '0.8');
+  svg.appendChild(line);
+  line.animate([{ opacity: 0 }, { opacity: .8 }], { duration: 160 });
+}
+
+/* ================= 提示 ================= */
+let toastTimer = 0;
+function showToast(text){
+  const d = $('done');
+  d.textContent = text;
+  d.classList.add('show');
+  clearTimeout(toastTimer);
+}
+function hideToast(){
+  $('done').classList.remove('show');
+}
+function flash(text){
+  showToast(text);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 1800);
+}
+
+/* ================= 模式 ================= */
+function syncModeUI(){
+  document.querySelectorAll('.mode').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === mode);
+  });
+  document.body.dataset.mode = mode;
+  $('hint').textContent = HINTS[mode] || HINTS.word;
+}
+
+function enterMode(m, resetStats){
+  mode = m;
+  syncModeUI();
+  if(resetStats){
+    score = 0; combo = 0; hits = 0; misses = 0;
+    roundNo = 1; completedRounds = 0;
+    updateStats();
+  }
+  buildRound();
+}
+
+/* ================= 错词本界面 ================= */
+function renderBook(){
+  const el = $('errList');
+  if(!errors.length){
+    el.innerHTML = '<div class="empty">还没有错词。<br>配对出错时，会记在这里。</div>';
+  }else{
+    el.innerHTML = errors.map(e => {
+      const wrong = e.wrong ? ' · 曾误选：' + esc(e.wrong) : '';
+      const pos = e.pos || posOf(e.en);
+      return '<div class="err-row">' +
+        '<button class="say" data-en="' + esc(e.en) + '" title="发音">🔊</button>' +
+        '<div class="who">' +
+          '<div class="err-head"><b>' + esc(e.en) + '</b>' +
+            (pos ? '<span class="pos">' + esc(posText(pos)) + '</span>' : '') +
+          '</div>' +
+          '<small>' + esc(e.zh) + wrong + '</small>' +
+        '</div>' +
+        '<span class="times">×' + (e.n || 1) + '</span>' +
+        '<button class="rm" data-en="' + esc(e.en) + '" title="已掌握，移除">✓</button>' +
+      '</div>';
+    }).join('');
+  }
+  const canReview = errors.length >= 2;
+  $('reviewBtn').disabled = !canReview;
+  $('reviewBtn').textContent = canReview ? '复习这些词' : '至少需要 2 个错词';
+  $('bookSub').textContent = errors.length
+    ? '配对出错时会自动记在这里。复习时配对正确，这个词就会移除。'
+    : '配对出错时会自动记在这里。';
+  $('overlay').classList.add('show');
+}
+function closeBook(){
+  $('overlay').classList.remove('show');
+}
+
+/* ================= 偏好按钮 ================= */
+function syncPrefs(){
+  $('ttsToggle').textContent = ttsOn ? '🔊 发音开' : '🔇 发音关';
+  $('ttsToggle').classList.toggle('on', ttsOn);
+  $('sfxToggle').textContent = sfxOn ? '🎵 音效开' : '🔕 音效关';
+  $('sfxToggle').classList.toggle('on', sfxOn);
+}
+
+/* ================= 事件 ================= */
+document.querySelectorAll('.mode').forEach(b => {
+  b.addEventListener('click', () => enterMode(b.dataset.mode, true));
+});
+
+$('restart').addEventListener('click', () => enterMode(mode, true));
+$('bookBtn').addEventListener('click', renderBook);
+$('closeBook').addEventListener('click', closeBook);
+$('overlay').addEventListener('click', e => { if(e.target === $('overlay')) closeBook(); });
+
+$('errList').addEventListener('click', e => {
+  const say = e.target.closest('.say');
+  const rm = e.target.closest('.rm');
+  if(say){ speak(say.dataset.en); return; }
+  if(rm){ removeError(rm.dataset.en); renderBook(); }
+});
+
+$('clearBook').addEventListener('click', () => {
+  if(!errors.length) return;
+  if(confirm('清空整个错词本？')){
+    errors = [];
+    saveErrors();
+    updateBookBadge();
+    renderBook();
+  }
+});
+
+$('reviewBtn').addEventListener('click', () => {
+  if(errors.length < 2) return;
+  closeBook();
+  enterMode('review', true);
+});
+
+$('ttsToggle').addEventListener('click', () => {
+  ttsOn = !ttsOn;
+  if(!ttsOn && 'speechSynthesis' in window){
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+  }
+  savePrefs();
+  syncPrefs();
+});
+
+$('sfxToggle').addEventListener('click', () => {
+  sfxOn = !sfxOn;
+  savePrefs();
+  syncPrefs();
+  if(sfxOn) ding(1);
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && $('overlay').classList.contains('show')) closeBook();
+});
+window.addEventListener('resize', () => { svg.innerHTML = ''; });
+
+/* ================= 启动 ================= */
+$('wordCount').textContent = WORDS.length;
+$('phraseCount').textContent = PHRASES.length;
+updateBookBadge();
+syncPrefs();
+enterMode('word', true);
+</script>
+</body>
+</html>
