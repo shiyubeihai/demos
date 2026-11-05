@@ -1,0 +1,2161 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>高中英语连线消消乐</title>
+<style>
+  :root{
+    --bg:#F4EEFB; --panel:#FFFDF8; --line:#E3DAC8; --ink:#2C2A26; --muted:#8C8577;
+    --lavender:#6D3FA3; --lavender-soft:#F2ECFA; --lavender-line:#D5C4EC; --lavender-shadow:rgba(109,63,163,.24);
+    --beige:#9A7433; --beige-soft:#FCF4DF; --beige-line:#EAD6AE; --beige-shadow:rgba(154,116,51,.24);
+    --green:#2E8B57; --green-soft:#F1F8F3; --green-line:#B7D8C2; --green-shadow:rgba(46,139,87,.20);
+    --red:#C0392B;
+    --accent:var(--lavender); --accent-soft:var(--lavender-soft); --accent-line:var(--lavender-line); --accent-shadow:var(--lavender-shadow);
+  }
+  body[data-mode="word"]{
+    --bg:#F4EEFB;
+    --accent:var(--lavender); --accent-soft:var(--lavender-soft); --accent-line:var(--lavender-line); --accent-shadow:var(--lavender-shadow);
+  }
+  body[data-mode="phrase"]{
+    --bg:#FBF3DC;
+    --accent:var(--beige); --accent-soft:var(--beige-soft); --accent-line:var(--beige-line); --accent-shadow:var(--beige-shadow);
+  }
+  body[data-mode="review"]{
+    --bg:#F7F8F2;
+    --accent:var(--green); --accent-soft:var(--green-soft); --accent-line:var(--green-line); --accent-shadow:var(--green-shadow);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(900px 500px at 50% -10%, #FFFDF7 0%, var(--bg) 60%);
+    color:var(--ink); font-family:"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    min-height:100vh; padding:14px 12px 22px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:760px; margin:0 auto}
+
+  header{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:10px}
+  h1{font-size:18px; margin:0; color:var(--accent); letter-spacing:.5px; flex:1 1 100%}
+  h1 span{font-size:11px; color:var(--muted); font-weight:400; margin-left:6px}
+  h1 b{font-weight:700; color:var(--muted)}
+
+  .modes{display:flex; gap:6px; flex:1 1 auto; flex-wrap:wrap}
+  .mode{
+    border:1px solid var(--line); background:var(--panel); color:var(--muted);
+    border-radius:999px; padding:7px 12px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit;
+  }
+  .mode.on{background:var(--accent); border-color:var(--accent); color:#fff}
+
+  .stats{display:flex; flex-wrap:wrap; gap:8px 12px; font-size:12px; color:var(--muted)}
+  .stats b{color:var(--ink); font-size:14px; margin-left:3px}
+  #score{color:var(--accent)}
+  #combo{color:var(--green)}
+
+  .hint{font-size:12.5px; color:var(--muted); margin:4px 0 10px; min-height:18px}
+
+  .board{
+    position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:10px 14px; padding:6px 2px;
+  }
+  #lines{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible}
+  .col{display:flex; flex-direction:column; gap:9px; min-width:0}
+
+  .tile{
+    width:100%; min-height:58px; display:flex; align-items:center;
+    padding:10px 12px; border-radius:14px; cursor:pointer;
+    background:var(--panel); border:1px solid var(--line);
+    font-family:inherit; font-size:clamp(14px,4vw,17px); line-height:1.25;
+    color:var(--ink); text-align:left; min-width:0;
+    overflow-wrap:anywhere; user-select:none;
+    transition:transform .12s, box-shadow .12s, border-color .12s, background .12s, opacity .2s;
+    box-shadow:0 2px 6px rgba(120,100,60,.06);
+  }
+  .tile:active{transform:scale(.985)}
+  .tile.en{
+    font-weight:600; border-left:4px solid var(--accent); color:#3B2E4F;
+    flex-direction:column; align-items:flex-start; justify-content:center;
+    gap:1px; padding-top:8px; padding-bottom:8px;
+  }
+  .tile .word{line-height:1.2}
+  .tile .pos{
+    font-size:10.5px; font-weight:500; line-height:1.1;
+    color:#7C766B; letter-spacing:.2px;
+  }
+  .tile.zh{color:#4a4438}
+  .tile.sel{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-shadow)}
+  .tile.ok{border-color:var(--green); background:#F1F8F3}
+  .tile.bad{animation:shake .35s; border-color:var(--red); background:#FDF1EF}
+  .tile.gone{opacity:0; transform:scale(.94); pointer-events:none}
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-5px)}
+    40%{transform:translateX(5px)}
+    60%{transform:translateX(-3px)}
+    80%{transform:translateX(3px)}
+  }
+
+  .bar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px}
+  .progress{font-size:12.5px; color:var(--muted)}
+  .progress b{color:var(--accent)}
+  .bar-actions{display:flex; gap:8px}
+  .restart{
+    border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit; display:inline-flex; align-items:center; gap:6px;
+  }
+  .restart:hover{background:#F4EEDF}
+  .restart.has-err{border-color:#E0B990; background:#FFF7EC}
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:18px; height:18px; padding:0 5px; border-radius:999px;
+    background:#E8871E; color:#fff; font-size:11px; font-weight:700;
+  }
+
+  .foot{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px}
+  .chip{
+    border:1px solid var(--line); background:var(--panel); color:var(--muted);
+    border-radius:999px; padding:6px 12px; font-size:12.5px; cursor:pointer;
+    font-family:inherit; font-weight:600;
+  }
+  .chip.on{color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft)}
+  .foot-note{font-size:11.5px; color:var(--muted)}
+
+  .done{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(.9);
+    background:var(--accent); color:#fff; padding:14px 22px; border-radius:14px;
+    font-size:16px; font-weight:700; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:9; max-width:86vw; text-align:center;
+  }
+  .done.show{opacity:1; transform:translate(-50%,-50%) scale(1)}
+
+  .overlay{
+    position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center;
+    padding:18px; background:rgba(43,37,25,.46);
+  }
+  .overlay.show{display:flex}
+  .modal{
+    width:min(100%,400px); max-height:92vh; overflow:auto; text-align:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    padding:18px 16px 14px; box-shadow:0 20px 60px rgba(40,30,10,.28);
+  }
+  .modal h2{margin:0; font-size:19px; color:var(--accent)}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .x{
+    border:none; background:transparent; color:var(--muted); font-size:22px; line-height:1;
+    cursor:pointer; padding:2px 6px; border-radius:8px;
+  }
+  .x:hover{background:#F4EEDF}
+  .modal .sub{margin:6px 0 10px; font-size:12.5px; color:var(--muted); line-height:1.5; text-align:left}
+  .modal-actions{display:flex; gap:8px; margin-top:12px}
+  .modal-actions button{
+    flex:1; border-radius:10px; padding:10px 12px; font:inherit; font-size:13.5px;
+    font-weight:700; cursor:pointer;
+  }
+  .primary{border:1px solid var(--green); background:var(--green); color:#fff}
+  .primary:hover{filter:brightness(.96)}
+  .primary:disabled{opacity:.45; cursor:not-allowed; filter:none}
+  .ghost{border:1px solid var(--line); background:var(--panel); color:var(--ink)}
+  .ghost:hover{background:#F4EEDF}
+
+  .err-list{display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; text-align:left; margin:8px 0 4px}
+  .err-row{display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:12px; background:#FBF7EE; border:1px solid var(--line)}
+  .err-row .say,.err-row .rm{
+    border:1px solid var(--line); background:#fff; border-radius:9px;
+    width:34px; height:34px; cursor:pointer; font-size:14px; flex:none; line-height:1;
+  }
+  .err-row .say:hover,.err-row .rm:hover{background:#F4EEDF}
+  .err-row .rm{color:var(--green); font-weight:700}
+  .err-row .who{flex:1; min-width:0}
+  .err-row .who .err-head{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap}
+  .err-row .who .err-head b{font-size:14.5px; color:#3B2E4F; overflow-wrap:anywhere}
+  .err-row .who .err-head .pos{font-size:10px; color:var(--muted); flex:none}
+  .err-row .who small{display:block; font-size:11.5px; color:var(--muted); overflow-wrap:anywhere}
+  .err-row .times{font-size:11.5px; color:var(--muted); flex:none}
+  .empty{padding:22px 8px; font-size:13px; color:var(--muted); line-height:1.7; text-align:center}
+
+
+  .example{
+    margin-top:10px; min-height:48px; padding:9px 12px;
+    border-radius:12px; background:var(--accent-soft); border:1px solid var(--accent-line);
+    display:flex; align-items:center; gap:10px;
+  }
+  .example .ex-main{flex:1; min-width:0}
+  .example .ex-word{font-size:13px; font-weight:700; color:var(--accent); line-height:1.4}
+  .example .ex-word.empty{font-weight:500; color:#A39A8A}
+  .example .ex-text{font-size:12.5px; color:#6B6357; line-height:1.45; margin-top:2px}
+  .example .ex-text:empty{display:none}
+  .example .ex-say{
+    flex:none; border:1px solid var(--accent-line); background:#FFFDF8; color:var(--accent);
+    border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit;
+  }
+  .example .ex-say:hover{background:#F4EEDF}
+  .err-row .who .ex{display:block; color:#8C8577; font-size:11px; line-height:1.45; margin-top:2px}
+
+  @media (max-width:420px){
+    body{padding:10px 8px 18px}
+    .tile{min-height:56px; padding:8px 9px; border-radius:12px}
+    .tile.en{padding-top:6px; padding-bottom:6px}
+    .tile .pos{font-size:10px}
+    .stats{gap:9px}
+    .bar{flex-wrap:wrap}
+    .bar-actions{width:100%; justify-content:flex-end}
+  }
+</style>
+</head>
+<body data-mode="word">
+<div class="wrap">
+  <header>
+    <h1>高中英语连线消消乐 <span><b id="wordCount">0</b> 词 · <b id="phraseCount">0</b> 短语 · 免费</span></h1>
+    <div class="modes">
+      <button class="mode on" data-mode="word">单词</button>
+      <button class="mode" data-mode="phrase">短语</button>
+    </div>
+    <div class="stats">
+      <div>得分<b id="score">0</b></div>
+      <div>连击<b id="combo">0</b></div>
+      <div>正确率<b id="acc">—</b></div>
+    </div>
+  </header>
+
+  <div class="hint" id="hint" aria-live="polite">把高中词汇和它的中文意思配对。点英文卡片可以听发音，配对成功会显示例句。</div>
+
+  <div class="board" id="board">
+    <svg id="lines"></svg>
+    <div class="col" id="left"></div>
+    <div class="col" id="right"></div>
+  </div>
+
+
+  <div class="example" id="example" aria-live="polite">
+    <div class="ex-main">
+      <div class="ex-word empty" id="exWord">配对成功后会显示例句</div>
+      <div class="ex-text" id="exText"></div>
+    </div>
+    <button class="ex-say" id="exSay" hidden>🔊 例句</button>
+  </div>
+
+  <div class="bar">
+    <div class="progress">本组 <b id="matched">0</b> / <span id="total">6</span> · 第 <b id="round">1</b> 组</div>
+    <div class="bar-actions">
+      <button class="restart" id="bookBtn">📕 错词本 <span class="badge" id="bookCount">0</span></button>
+      <button class="restart" id="restart">重新开始</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button class="chip on" id="ttsToggle">🔊 发音开</button>
+    <button class="chip on" id="sfxToggle">🎵 音效开</button>
+    <span class="foot-note">点英文卡片听发音 · 配对成功看例句</span>
+  </div>
+</div>
+
+<div class="done" id="done" aria-live="polite"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+    <div class="modal-head">
+      <h2 id="bookTitle">错词本</h2>
+      <button class="x" id="closeBook" aria-label="关闭">×</button>
+    </div>
+    <p class="sub" id="bookSub">配对出错时会自动记在这里。复习时配对正确，这个词就会移除。</p>
+    <div class="err-list" id="errList"></div>
+    <div class="modal-actions">
+      <button class="primary" id="reviewBtn">复习这些词</button>
+      <button class="ghost" id="clearBook">清空</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 词库 =================
+   格式：英文|中文，一行一个，重复的英文会自动去重。
+   想增删词，直接改下面的 WORD_RAW / PHRASE_RAW 即可。
+========================================= */
+const WORD_RAW = `
+abandon|放弃|v|He had to abandon the project due to lack of funds.
+abolish|废除|v|The government decided to abolish the old law.
+absorb|吸收|v|Plants absorb carbon dioxide from the air.
+abstract|抽象的|adj|The concept is too abstract for children to understand.
+abundant|丰富的|adj|The region has abundant natural resources.
+accelerate|加速|v|The car accelerated quickly on the highway.
+access|通道；访问|n/v|You need a password to access the system.
+accommodate|容纳；提供住宿|v|The hotel can accommodate up to 200 guests.
+accompany|陪伴|v|She accompanied her mother to the hospital.
+accomplish|完成|v|He accomplished his goal of running a marathon.
+accurate|准确的|adj|The data must be accurate for the experiment.
+accuse|指控|v|He was accused of stealing the money.
+achieve|实现|v|She achieved great success in her career.
+acknowledge|承认|v|He acknowledged his mistake.
+acquire|获得|v|She acquired new skills through training.
+adapt|适应|v|Animals adapt to their environment over time.
+adequate|足够的|adj|The supply is adequate for the whole winter.
+adjust|调整|v|You can adjust the volume using this button.
+administration|管理；行政|n|The school administration made new rules.
+admire|钦佩|v|I admire your courage.
+admission|入场；承认|n|Admission to the museum is free.
+adopt|采纳；收养|v|They decided to adopt a child.
+advance|前进；进步|v/n|Technology continues to advance rapidly.
+advantage|优势|n|Being tall is an advantage in basketball.
+adventure|冒险|n|They went on an exciting adventure.
+advertise|做广告|v|Companies advertise their products online.
+affair|事务；事件|n|It's a private affair.
+affection|喜爱|n|She showed great affection for her pet.
+afterward|之后|adv|We had dinner and afterward watched a movie.
+agency|代理机构|n|She works for a travel agency.
+aggressive|侵略的；好斗的|adj|The dog became aggressive when threatened.
+agriculture|农业|n|Agriculture is important for the economy.
+alcohol|酒精|n|He doesn't drink alcohol.
+allowance|津贴；零花钱|n|My parents give me a weekly allowance.
+alter|改变|v|The plan may need to be altered.
+alternative|替代的|n/adj|We need an alternative solution.
+amaze|使惊奇|v|Her performance amazed everyone.
+ambassador|大使|n|He served as ambassador to France.
+ambition|雄心|n|She has the ambition to start her own business.
+analyse|分析|v|We need to analyse the data carefully.
+annual|每年的|adj|The annual meeting will be held next week.
+anticipate|预期|v|We anticipate a large crowd at the concert.
+anxiety|焦虑|n|He felt anxiety before the exam.
+apparent|明显的|adj|It became apparent that he was lying.
+appeal|呼吁；吸引|v/n|The charity appeal raised a lot of money.
+appetite|食欲；渴望|n|I have a good appetite after exercise.
+appliance|电器|n|Kitchen appliances include refrigerators and ovens.
+applicant|申请人|n|There were many applicants for the job.
+appoint|任命|v|The committee appointed a new chairperson.
+appreciate|感激；欣赏|v|I really appreciate your help.
+approach|接近；方法|v/n|We need a new approach to the problem.
+appropriate|适当的|adj|Please wear appropriate clothes for the occasion.
+approve|批准|v|The board approved the budget.
+approximately|大约|adv|The journey takes approximately two hours.
+architecture|建筑学|n|Modern architecture is very different from classical.
+arise|出现|v|A problem arose during the meeting.
+artificial|人工的|adj|Artificial intelligence is changing the world.
+aside|在旁边|adv|He stepped aside to let her pass.
+aspect|方面|n|Every aspect of the plan was considered.
+assemble|集合；组装|v|The students assembled in the hall.
+assessment|评估|n|The teacher gave an assessment of our work.
+assign|分配|v|Each student was assigned a task.
+assist|协助|v|Can you assist me with this box?
+associate|联系|v|We associate summer with holidays.
+assume|假定|v|I assume you already know the news.
+atmosphere|气氛；大气层|n|The atmosphere at the party was lively.
+attach|附上；连接|v|Please attach the file to the email.
+attempt|尝试|v/n|He made an attempt to climb the mountain.
+attend|参加|v|Will you attend the conference?
+attract|吸引|v|The bright colors attract butterflies.
+attribute|属性；归因于|v/n|She attributed her success to hard work.
+authority|权威；当局|n|The local authority issued a warning.
+automatic|自动的|adj|The door opens automatically.
+aware|意识到|adj|Are you aware of the risks?
+ban|禁止|v/n|Smoking is banned in public places.
+band|乐队；带子|n|The band played a great song.
+bankrupt|破产的|adj|The company went bankrupt last year.
+barrier|障碍|n|Language can be a barrier to communication.
+base|基础；基地|n/v|The base of the pyramid is wide.
+basic|基本的|adj|These are basic math skills.
+basis|基础|n|We meet on a regular basis.
+battery|电池|n|The battery needs charging.
+behalf|代表|n|On behalf of everyone, I thank you.
+behave|表现|v|Children should behave well in class.
+belongings|财产|n|Take all your belongings when you leave.
+beneficial|有益的|adj|Exercise is beneficial to health.
+betray|背叛|v|He betrayed his friend's trust.
+bid|出价；努力|v/n|She made a bid for the presidency.
+bind|捆绑|v|The rope binds the boxes together.
+blank|空白的|adj|Write your name on the blank line.
+blast|爆炸|n/v|The bomb blast destroyed the building.
+bleed|流血|v|His finger was bleeding.
+bless|祝福|v|May God bless you.
+block|街区；阻挡|n/v|A fallen tree blocked the road.
+blossom|花；开花|n/v|The cherry trees blossom in spring.
+bold|大胆的|adj|She made a bold decision.
+bond|纽带；债券|n|There is a strong bond between them.
+boom|繁荣|n/v|The economy experienced a boom.
+bother|打扰|v|Sorry to bother you.
+bound|必然的；跳跃|adj/v|You are bound to succeed if you try.
+boundary|边界|n|The river forms the boundary between the two countries.
+bravery|勇敢|n|The soldier showed great bravery.
+breakthrough|突破|n|The discovery was a major breakthrough.
+breed|繁殖；品种|v/n|Dogs breed once or twice a year.
+brief|简短的|adj|Please give a brief summary.
+brilliant|灿烂的；杰出的|adj|She had a brilliant idea.
+brochure|小册子|n|The travel brochure shows beautiful beaches.
+bulletin|公告|n|Check the bulletin board for updates.
+burden|负担|n|The heavy bag was a burden.
+burst|爆发|v|The balloon burst with a loud noise.
+campaign|运动；战役|n|They launched a campaign against smoking.
+candidate|候选人|n|There are three candidates for the position.
+capable|有能力的|adj|She is capable of handling the job.
+capacity|容量；能力|n|The stadium has a capacity of 50,000.
+capture|捕获|v|The photographer captured a beautiful moment.
+carve|雕刻|v|He carved a statue out of wood.
+cast|投掷；选派|v|The director cast her in the lead role.
+casual|随意的|adj|He wore casual clothes to the party.
+catalogue|目录|n|Look up the book in the library catalogue.
+category|类别|n|This falls into the category of science fiction.
+caution|谨慎|n|Drive with caution on icy roads.
+cease|停止|v|The rain ceased after midnight.
+certificate|证书|n|She received a certificate of achievement.
+champion|冠军|n|He became the champion of the tournament.
+characteristic|特征|n/adj|Patience is one of her characteristics.
+charge|收费；负责|v/n|The meal charges $10 per person.
+charity|慈善|n|She donated money to charity.
+chemical|化学的|adj/n|Chemical reactions produce energy.
+chief|主要的；首领|adj/n|The chief concern is safety.
+circumstance|环境；情况|n|Under no circumstances should you lie.
+civil|公民的；文明的|adj|Civil rights are protected by law.
+claim|声称；索赔|v/n|He claimed that he saw the accident.
+clarify|澄清|v|Let me clarify what I mean.
+classic|经典的|adj|The novel is a classic work of literature.
+classify|分类|v|Books are classified by subject.
+client|客户|n|The client requested a refund.
+collapse|倒塌|v|The old building collapsed suddenly.
+command|命令；指挥|n/v|The general commanded the troops.
+commerce|商业|n|E-commerce has grown rapidly.
+commission|委员会；佣金|n|The commission investigated the scandal.
+commit|犯（罪）；承诺|v|He committed a serious crime.
+companion|同伴|n|She was my companion on the trip.
+compel|强迫|v|The law compels drivers to wear seat belts.
+compensate|补偿|v|The company compensated him for his injury.
+competent|胜任的|adj|She is a competent manager.
+component|组成部分|n|The engine has many components.
+compose|组成；创作|v|Water is composed of hydrogen and oxygen.
+composition|作文；构成|n|She wrote a composition about nature.
+comprehensive|全面的|adj|The report provides a comprehensive overview.
+comprise|包含|v|The committee comprises ten members.
+concentrate|集中|v|You need to concentrate on your studies.
+concept|概念|n|The concept of freedom is important.
+concern|关心；涉及|n/v|This concerns everyone.
+conclude|得出结论|v|The study concluded that exercise improves health.
+concrete|具体的|adj|Give me a concrete example.
+conduct|进行；行为|v/n|The experiment was conducted carefully.
+confess|承认|v|He confessed to stealing the money.
+confine|限制|v|The disease confined him to bed.
+confirm|确认|v|Please confirm your reservation.
+confront|面对|v|She confronted her fears.
+conscious|有意识的|adj|He was conscious of the danger.
+consequence|后果|n|Think about the consequences before you act.
+conservation|保护|n|Wildlife conservation is crucial.
+considerable|相当大的|adj|There was a considerable increase in sales.
+consist|由……组成|v|The team consists of five members.
+consistent|一致的|adj|His actions are consistent with his words.
+constant|持续的|adj|The constant noise gave me a headache.
+construct|建造|v|They constructed a new bridge.
+consult|咨询|v|You should consult a doctor.
+consume|消费；消耗|v|The car consumes a lot of fuel.
+contain|包含|v|The box contains books.
+contemporary|当代的|adj|Contemporary art is often controversial.
+continent|大陆|n|Africa is a continent.
+contrast|对比|n/v|The contrast between light and dark is striking.
+controversy|争议|n|The decision caused controversy.
+convention|惯例；大会|n|The convention meets annually.
+convince|说服|v|She convinced me to join the club.
+cooperate|合作|v|The two companies cooperated on the project.
+coordinate|协调|v|We need to coordinate our efforts.
+core|核心|n|The core of the problem is lack of funding.
+corporate|公司的|adj|Corporate culture varies widely.
+correspond|通信；对应|v|Your account does not correspond with mine.
+counsel|建议；辅导|n/v|She sought counsel from a lawyer.
+counterpart|对应的人/物|n|The US president met his Chinese counterpart.
+craft|工艺；精心制作|n/v|She crafted a beautiful vase.
+credit|信用；学分|n|He paid by credit card.
+crew|全体人员|n|The crew worked hard to finish on time.
+crisis|危机|n|The country faced an economic crisis.
+criteria|标准（复数）|n|What are the criteria for selection?
+critical|批评的；关键的|adj|This is a critical moment.
+criticism|批评|n|Constructive criticism helps us improve.
+cultivate|培养；耕种|v|He cultivated a love of reading.
+curiosity|好奇心|n|Children have natural curiosity.
+current|当前的；电流|adj/n|The current situation is unstable.
+curriculum|课程|n|The school curriculum includes music.
+damage|损害|n/v|The storm caused severe damage.
+damp|潮湿的|adj|The basement is damp.
+dawn|黎明|n|We woke up at dawn.
+deadline|截止日期|n|The deadline is next Friday.
+debt|债务|n|He is in debt because of his loans.
+decline|下降；拒绝|v/n|The population declined sharply.
+decorate|装饰|v|They decorated the house for Christmas.
+decrease|减少|v/n|Sales decreased by 10%.
+defeat|击败|v/n|The team suffered a defeat.
+define|定义|v|How do you define success?
+definite|明确的|adj|We need a definite answer.
+delay|延迟|v/n|The flight was delayed due to fog.
+deliberate|故意的|adj|It was a deliberate act.
+delicate|精致的；脆弱的|adj|The glass is delicate.
+demand|需求；要求|n/v|The product is in high demand.
+demonstrate|示范；证明|v|The experiment demonstrates the principle.
+deny|否认|v|He denied the accusation.
+depart|离开|v|The train departs at 9 AM.
+department|部门|n|She works in the marketing department.
+departure|出发|n|The departure time is 8 PM.
+deposit|存款；押金|n/v|You need to pay a deposit.
+depress|使沮丧|v|The bad news depressed him.
+derive|源自|v|The word derives from Latin.
+descend|下降|v|The path descends steeply.
+deserve|值得|v|You deserve a reward.
+desperate|绝望的|adj|He was desperate for help.
+destroy|破坏|v|The fire destroyed the building.
+detect|察觉；检测|v|The device detects smoke.
+determine|决定|v|We need to determine the cause.
+devote|奉献|v|She devoted her life to teaching.
+diagram|图表|n|The diagram explains the process.
+dialogue|对话|n|The dialogue between the characters is witty.
+dictate|口述；支配|v|The boss dictated the letter.
+differ|不同|v|Opinions differ on this matter.
+digest|消化|v|It takes time to digest food.
+dignity|尊严|n|He maintained his dignity throughout.
+dilemma|困境|n|She faced a moral dilemma.
+dimension|维度|n|Time is the fourth dimension.
+diminish|减少|v|The pain gradually diminished.
+discipline|纪律；学科|n|Learning requires discipline.
+disclose|揭露|v|The report discloses the facts.
+discrimination|歧视|n|Racial discrimination is illegal.
+dismiss|解散；解雇|v|The teacher dismissed the class.
+display|展示|v/n|The museum displays ancient artifacts.
+dispute|争端|n/v|They settled the dispute peacefully.
+dissolve|溶解|v|Sugar dissolves in water.
+distinct|清晰的；不同的|adj|There are distinct differences.
+distinguish|区分|v|Can you distinguish between the twins?
+distribute|分配|v|Food was distributed to the homeless.
+district|地区|n|The financial district is busy.
+disturb|打扰|v|Do not disturb the sign reads.
+diverse|多样的|adj|The city has a diverse population.
+divorce|离婚|n/v|They got divorced last year.
+domestic|国内的；家庭的|adj|Domestic violence is a crime.
+dominate|主导|v|The team dominated the game.
+draft|草稿；征兵|n/v|He wrote a draft of the essay.
+drag|拖拽|v|She dragged the suitcase behind her.
+drain|排水|v|The sink drains slowly.
+dramatic|戏剧性的|adj|There was a dramatic change.
+drift|漂流|v|The boat drifted down the river.
+durable|耐用的|adj|This material is durable.
+dynamic|动态的|adj|The market is dynamic.
+eager|渴望的|adj|She is eager to learn.
+ease|轻松；减轻|n/v|The medicine eased the pain.
+economic|经济的|adj|The economic situation improved.
+edition|版本|n|The first edition sold out.
+editorial|社论；编辑的|n/adj|The editorial criticized the policy.
+educate|教育|v|Parents educate their children.
+effective|有效的|adj|The medicine is effective.
+efficient|高效的|adj|The new system is efficient.
+elaborate|详细的；精心制作|adj/v|Please elaborate on your idea.
+element|元素|n|Water is made of two elements.
+eliminate|消除|v|We need to eliminate waste.
+embarrass|使尴尬|v|His joke embarrassed her.
+emerge|出现|v|New evidence emerged.
+emission|排放|n|Car emissions pollute the air.
+emphasis|强调|n|The emphasis is on quality.
+employ|雇用|v|The company employs 500 people.
+enable|使能够|v|The software enables users to edit photos.
+encounter|遭遇|v/n|They encountered many difficulties.
+endanger|危及|v|Pollution endangers wildlife.
+endeavor|努力|n/v|She endeavored to finish the project.
+endure|忍受|v|He endured great pain.
+enforce|执行|v|The police enforce the law.
+engage|参与|v|She engaged in conversation.
+enhance|增强|v|Exercise enhances fitness.
+enormous|巨大的|adj|An enormous whale appeared.
+ensure|确保|v|Please ensure the door is locked.
+enterprise|企业|n|Small enterprises drive innovation.
+entertain|娱乐|v|The magician entertained the children.
+enthusiasm|热情|n|Her enthusiasm is contagious.
+entitle|赋予权利|v|This ticket entitles you to a free drink.
+episode|片段；一集|n|The TV episode was exciting.
+equal|相等的；等于|adj/v|All people are equal.
+equip|装备|v|The lab is equipped with modern tools.
+equivalent|等价的|adj/n|One dollar is equivalent to about 7 yuan.
+era|时代|n|We live in the digital era.
+error|错误|n|The error was corrected.
+essential|必要的|adj|Water is essential for life.
+establish|建立|v|The company was established in 1990.
+estimate|估计|v/n|The cost is estimated at $1000.
+evaluate|评估|v|We need to evaluate the results.
+eventually|最终|adv|Eventually, they reached an agreement.
+evidence|证据|n|The evidence proves his guilt.
+evident|明显的|adj|It is evident that she is upset.
+evil|邪恶的|adj/n|Good versus evil is a common theme.
+evolve|进化|v|Species evolve over time.
+exaggerate|夸张|v|He tends to exaggerate.
+examine|检查|v|The doctor examined the patient.
+exceed|超过|v|The speed exceeded the limit.
+exception|例外|n|Everyone passed except one exception.
+excess|过量|n|Excess sugar is harmful.
+exclude|排除|v|The price excludes tax.
+execute|执行；处决|v|The plan was executed perfectly.
+exhibit|展览|v/n|The museum exhibits ancient art.
+expand|扩大|v|The company expanded overseas.
+expectation|期望|n|The results met our expectations.
+exploit|利用；剥削|v|Companies exploit natural resources.
+explore|探索|v|They explored the cave.
+export|出口|v/n|China exports many goods.
+expose|暴露|v|The film was exposed to light.
+extend|延伸；延长|v|The road extends for miles.
+extensive|广泛的|adj|He has extensive knowledge.
+external|外部的|adj|External factors influenced the decision.
+extraordinary|非凡的|adj|She has extraordinary talent.
+extreme|极端的|adj|Extreme weather is becoming common.
+facility|设施|n|The sports facility is modern.
+factor|因素|n|Cost is a key factor.
+faculty|才能；全体教师|n|She has a faculty for languages.
+faith|信仰；信任|n|He has faith in humanity.
+fame|名声|n|She achieved fame as an actress.
+familiar|熟悉的|adj|This place looks familiar.
+fantasy|幻想|n|He lives in a fantasy world.
+fascinating|迷人的|adj|The documentary was fascinating.
+fatal|致命的|adj|The accident was fatal.
+feature|特征|n|The phone has many features.
+federal|联邦的|adj|The federal government sets policies.
+feedback|反馈|n|Please provide feedback.
+female|女性|adj/n|The female population is larger.
+fertile|肥沃的|adj|The soil is fertile.
+fiction|小说|n|Science fiction is popular.
+fierce|凶猛的；激烈的|adj|The competition was fierce.
+file|文件；归档|n/v|Save the file on your computer.
+finance|金融|n|He studied finance in college.
+finite|有限的|adj|Resources are finite.
+flame|火焰|n|The flame burned brightly.
+flash|闪光|v/n|Lightning flashed across the sky.
+flexible|灵活的|adj|The schedule is flexible.
+float|漂浮|v|Wood floats on water.
+flourish|繁荣|v|The business flourished.
+flow|流动|v/n|The river flows to the sea.
+fluctuate|波动|v|Prices fluctuate daily.
+folk|民间|n/adj|Folk music is traditional.
+forecast|预测|v/n|The weather forecast predicts rain.
+forge|锻造；伪造|v|He forged the signature.
+former|前者的|adj|The former president visited.
+formula|公式|n|The chemical formula is H2O.
+forthcoming|即将到来的|adj|The forthcoming event is exciting.
+foundation|基础；基金会|n|The foundation of the building is solid.
+fraction|分数；一小部分|n|A fraction of the population voted.
+fragment|碎片|n|The mirror broke into fragments.
+framework|框架|n|The legal framework protects rights.
+franchise|特许经营权|n|The fast-food franchise is popular.
+frank|坦率的|adj|To be frank, I don't like it.
+fraud|欺诈|n|He was convicted of fraud.
+frequency|频率|n|The frequency of earthquakes increased.
+friction|摩擦|n|Oil reduces friction.
+frontier|边境；前沿|n|Space is the final frontier.
+frown|皱眉|v|She frowned in disapproval.
+frustrate|使沮丧|v|The delay frustrated everyone.
+fuel|燃料|n|Gasoline is used as fuel.
+fulfill|履行；实现|v|She fulfilled her dream.
+fund|基金；资助|n/v|The project is funded by the government.
+fundamental|基本的|adj|There are fundamental differences.
+furthermore|此外|adv|Furthermore, we need more time.
+gain|获得；收益|v/n|He gained experience.
+gallery|画廊|n|The art gallery exhibits modern works.
+gaze|凝视|v/n|She gazed at the stars.
+gender|性别|n|Gender equality is important.
+gene|基因|n|Genes determine inherited traits.
+generate|产生|v|Wind generates electricity.
+genetic|遗传的|adj|Genetic engineering raises ethical issues.
+genius|天才|n|Einstein was a genius.
+genuine|真正的|adj|The painting is genuine.
+gesture|手势|n|He made a gesture of peace.
+giant|巨人；巨大的|n/adj|The giant corporation dominates the market.
+globe|地球；球体|n|The globe shows continents.
+glimpse|一瞥|n/v|I caught a glimpse of her face.
+global|全球的|adj|Global warming is a serious issue.
+glory|光荣|n|The team fought for glory.
+govern|统治；管理|v|The country is governed by law.
+grab|抓住|v|He grabbed the rope.
+grace|优雅|n|She danced with grace.
+grant|授予；补助金|v/n|The university granted him a scholarship.
+graph|图表|n|The graph shows the trend.
+grasp|理解；抓住|v|He grasped the concept quickly.
+grateful|感激的|adj|I am grateful for your help.
+gravity|重力；严重性|n|Newton discovered gravity.
+greedy|贪婪的|adj|The greedy man wanted more money.
+greenhouse|温室|n|Greenhouse gases trap heat.
+grief|悲伤|n|She was overcome with grief.
+grip|紧握|v/n|The tire grips the road.
+gross|总的；恶心的|adj|The gross profit is high.
+guarantee|保证|v/n|The product comes with a guarantee.
+guideline|指导方针|n|Follow the safety guidelines.
+guilty|有罪的|adj|The jury found him guilty.
+habitat|栖息地|n|The forest is the habitat of many animals.
+halt|停止|v/n|The car came to a halt.
+handle|处理；把手|v/n|Can you handle the pressure?
+harsh|严酷的；刺耳的|adj|The punishment was harsh.
+hazard|危险|n|Smoking is a health hazard.
+heal|治愈|v|The wound healed quickly.
+heap|堆|n|The leaves formed a heap.
+hedge|树篱|n|The garden is surrounded by a hedge.
+heritage|遗产|n|The building is part of our cultural heritage.
+hesitate|犹豫|v|Don't hesitate to ask.
+highlight|突出；亮点|v/n|The highlight of the trip was the beach.
+hike|远足|n/v|They went for a hike in the mountains.
+hint|暗示|n/v|She gave a hint about the surprise.
+horizon|地平线|n|The sun set below the horizon.
+hormone|激素|n|Hormones affect mood.
+hostile|敌对的|adj|The atmosphere was hostile.
+household|家庭|n|The household chores are shared.
+humanity|人类；人性|n|Humanity faces many challenges.
+ideal|理想的|adj/n|The ideal candidate has experience.
+identical|相同的|adj|The two pictures are identical.
+identify|识别|v|Can you identify the plant?
+ignore|忽视|v|Don't ignore the warning signs.
+illegal|非法的|adj|It is illegal to park here.
+illustrate|说明|v|The diagram illustrates the process.
+immediate|立即的|adj|We need immediate action.
+immense|巨大的|adj|The task is immense.
+immigrant|移民|n|The immigrant community is diverse.
+immune|免疫的|adj|Vaccines make you immune to diseases.
+implement|实施|v|The plan was implemented successfully.
+implication|含义；影响|n|The implications of the decision are unclear.
+import|进口|v/n|The country imports oil.
+impose|强加|v|The government imposed new taxes.
+impress|给…留下印象|v|She impressed the judges with her performance.
+impulse|冲动|n|He acted on impulse.
+include|包括|v|The price includes tax.
+incorporate|合并；纳入|v|The design incorporates new features.
+incredible|难以置信的|adj|The view was incredible.
+indicate|表明|v|The sign indicates the direction.
+individual|个人；个人的|n/adj|Each individual has unique talents.
+industrial|工业的|adj|The industrial revolution changed society.
+inevitable|不可避免的|adj|Change is inevitable.
+infant|婴儿|n|The infant is sleeping.
+infect|感染|v|The virus infected many people.
+infer|推断|v|What can you infer from the data?
+inform|通知|v|Please inform us of any changes.
+ingredient|成分|n|Flour is a main ingredient.
+inhabit|居住于|v|Birds inhabit the island.
+inherit|继承|v|She inherited the property.
+initial|最初的|adj|The initial plan failed.
+initiative|主动性；倡议|n|She took the initiative to start the project.
+innocent|无辜的|adj|The prisoner was innocent.
+innovation|创新|n|Technological innovation drives progress.
+input|输入|n|We need your input on this.
+inquire|询问|v|He inquired about the price.
+insert|插入|v|Insert the coin into the slot.
+insight|洞察力|n|The article gives insight into the problem.
+inspect|检查|v|The inspector inspected the factory.
+inspire|鼓舞|v|The story inspired me.
+install|安装|v|They installed a new system.
+instance|实例|n|For instance, take this case.
+instant|立即的|adj|Instant noodles are quick to prepare.
+instinct|本能|n|Birds migrate by instinct.
+institute|学院；研究所|n|She works at a research institute.
+instruct|指示；教授|v|The coach instructed the players.
+integrate|整合|v|The system integrates multiple functions.
+intellectual|智力的|adj|Intellectual property is protected.
+intelligence|智力；情报|n|Artificial intelligence is advancing.
+intense|强烈的|adj|The heat was intense.
+interact|互动|v|Students interact with each other.
+interface|界面|n|The user interface is intuitive.
+interfere|干涉|v|Don't interfere in my affairs.
+internal|内部的|adj|Internal organs are protected.
+interpret|解释；口译|v|She interpreted the speech for the visitors.
+interval|间隔|n|There is an interval between acts.
+intervene|干预|v|The government intervened to stabilize prices.
+intimate|亲密的|adj|They are intimate friends.
+invade|入侵|v|The army invaded the country.
+investigate|调查|v|The police investigated the crime.
+investment|投资|n|Real estate is a good investment.
+invisible|看不见的|adj|Germs are invisible to the naked eye.
+involve|涉及；包含|v|The project involves many people.
+isolate|隔离|v|The patient was isolated.
+joint|联合的；关节|adj/n|The joint effort succeeded.
+journal|日记；期刊|n|She keeps a daily journal.
+judgment|判断|n|Use your own judgment.
+justice|正义；司法|n|The court seeks justice.
+justify|证明…正当|v|How can you justify such behavior?
+keen|热切的；敏锐的|adj|She has a keen eye for detail.
+kernel|核心；果仁|n|The kernel of the argument is valid.
+keyboard|键盘|n|The keyboard is wireless.
+kidnap|绑架|v|The child was kidnapped.
+label|标签；标注|n/v|Read the label carefully.
+labor|劳动|n|Manual labor is tiring.
+landscape|风景|n|The landscape is breathtaking.
+launch|发射；推出|v/n|The company launched a new product.
+layer|层|n|The ozone layer protects the earth.
+layout|布局|n|The layout of the room is spacious.
+leadership|领导力|n|Strong leadership is needed.
+league|联盟|n|The football league season starts soon.
+leak|泄漏|v/n|The pipe is leaking.
+lean|倾斜；依靠|v|Lean against the wall.
+leap|跳跃|v/n|He leaped over the fence.
+legal|合法的|adj|The contract is legally binding.
+legend|传说|n|The legend of King Arthur is famous.
+legislation|立法|n|The legislation was passed by parliament.
+legitimate|合法的；正当的|adj|His claim is legitimate.
+lens|镜头；透镜|n|The camera lens is dirty.
+liberal|自由的；开明的|adj|She holds liberal views.
+liberty|自由|n|The statue symbolizes liberty.
+license|执照|n|He has a driver's license.
+liquid|液体|n/adj|Water is a liquid.
+literacy|读写能力|n|Literacy rates have improved.
+literal|字面的|adj|The literal meaning is different.
+literature|文学|n|She studied English literature.
+livestock|牲畜|n|The farmer raises livestock.
+loan|贷款|n/v|The bank approved his loan.
+locate|位于；找到|v|The hotel is located downtown.
+logic|逻辑|n|His argument lacks logic.
+long-term|长期的|adj|Long-term planning is essential.
+loose|松的|adj|The screw is loose.
+lower|降低|v|Lower the volume please.
+loyal|忠诚的|adj|The dog is loyal to its owner.
+luxury|奢侈|n|Living in luxury is expensive.
+machinery|机械|n|The machinery is automated.
+maintain|维持；保养|v|He maintains his car regularly.
+majority|大多数|n|The majority voted yes.
+male|男性|adj/n|Male lions have manes.
+manifest|显示；表明|v|The symptoms manifest after infection.
+manipulate|操纵|v|He manipulated the data.
+manufacture|制造|v|The factory manufactures cars.
+margin|边缘；利润|n|The margin of error is small.
+marine|海洋的|adj|Marine life is diverse.
+massive|大量的；大规模的|adj|The massive rock blocked the road.
+maximum|最大的；最大值|adj/n|The maximum speed is 120 km/h.
+mechanism|机制|n|The mechanism of the clock is complex.
+medium|媒介；中等的|n/adj|The medium size fits me.
+membership|会员资格|n|She applied for membership.
+memorial|纪念碑|n|The memorial honors war heroes.
+merchant|商人|n|The merchant sells spices.
+mere|仅仅的|adj|It was a mere coincidence.
+merge|合并|v|The two companies merged.
+merit|优点|n|The merits of the plan are clear.
+mess|混乱|n|The room is a mess.
+mild|温和的|adj|The weather is mild today.
+military|军事的；军队|adj/n|The military base is secure.
+minimum|最小的；最小值|adj/n|The minimum wage increased.
+minority|少数|n|Only a minority agreed.
+miracle|奇迹|n|It was a miracle he survived.
+miserable|悲惨的|adj|The refugees lived in miserable conditions.
+mislead|误导|v|The advertisement misled consumers.
+moderate|适度的|adj|Moderate exercise is healthy.
+modernize|现代化|v|The factory was modernized.
+modify|修改|v|The design was modified.
+moral|道德的；寓意|adj/n|The moral of the story is clear.
+motion|运动；动作|n|The motion of the waves is soothing.
+motivate|激励|v|The teacher motivated the students.
+mount|登上；安装|v|He mounted the horse.
+multiple|多个的|adj|Multiple factors contributed to the result.
+mutual|相互的|adj|The feeling is mutual.
+myth|神话|n|Ancient myths explain natural phenomena.
+nationwide|全国范围的|adj/adv|The strike was nationwide.
+navy|海军|n|He joined the navy.
+neglect|忽视|v|He neglected his duties.
+negotiate|谈判|v|They negotiated a peace deal.
+nerve|神经；勇气|n|He lost his nerve.
+neutral|中立的|adj|Switzerland remained neutral.
+noble|高尚的|adj|She has a noble character.
+notable|显著的|adj|The notable feature is its size.
+noticeable|显而易见的|adj|The difference is noticeable.
+notion|概念；看法|n|She has a notion that he is dishonest.
+nowadays|如今|adv|Nowadays, everyone uses smartphones.
+nuclear|核能的|adj|Nuclear power is controversial.
+numerous|许多的|adj|Numerous studies support this.
+obligation|义务|n|We have an obligation to help.
+observation|观察|n|His observation was accurate.
+observe|观察；遵守|v|Observe the speed limit.
+obstacle|障碍|n|Lack of money is an obstacle.
+obtain|获得|v|She obtained a visa.
+occupy|占据；使忙碌|v|The seat is occupied.
+occur|发生|v|The accident occurred yesterday.
+odd|奇怪的；奇数的|adj|It's odd that he didn't call.
+offend|冒犯|v|I didn't mean to offend you.
+offer|提供；报价|v/n|She offered me a job.
+official|官方的；官员|adj/n|The official announcement is pending.
+ongoing|正在进行的|adj|The investigation is ongoing.
+opening|开口；开幕|n|The opening ceremony was grand.
+operate|操作；经营|v|The machine operates smoothly.
+opponent|对手|n|He defeated his opponent.
+oppose|反对|v|Many people oppose the plan.
+optimistic|乐观的|adj|She is optimistic about the future.
+orbit|轨道|n/v|The satellite orbits the Earth.
+organ|器官|n|The heart is a vital organ.
+orient|定向；使适应|v|The program helps new students orient themselves.
+original|原始的；独创的|adj|The original plan was better.
+outcome|结果|n|The outcome of the election is unknown.
+outdoor|户外的|adj|Outdoor activities are fun.
+outlet|出口；插座|n|The outlet is on the wall.
+outline|大纲；概述|n/v|Outline your main points.
+output|产出|n|The output increased by 10%.
+outstanding|杰出的|adj|She is an outstanding student.
+overall|整体的；总的来说|adj/adv|Overall, the project was successful.
+overcome|克服|v|She overcame her fear.
+overlook|俯瞰；忽略|v|The tower overlooks the city.
+overseas|海外的|adj/adv|He works overseas.
+overtake|追上；超过|v|The car overtook the truck.
+owe|欠；归功于|v|I owe you an apology.
+pace|步伐|n|The pace of life is faster.
+pack|包；打包|n/v|He packed his bags.
+panel|面板；专家组|n|The panel of experts discussed the issue.
+parallel|平行的|adj|The lines are parallel.
+parameter|参数|n|Set the parameters correctly.
+participate|参加|v|Everyone participated in the discussion.
+particular|特定的；特别的|adj|Pay particular attention to details.
+partly|部分地|adv|The failure was partly due to bad luck.
+passion|热情|n|She has a passion for music.
+passive|被动的|adj|He took a passive role.
+pattern|模式；图案|n|The pattern repeats every meter.
+peak|山峰；顶峰|n|The peak of the mountain is snowy.
+penalty|惩罚|n|The penalty for cheating is severe.
+perceive|感知；认为|v|How do you perceive this situation?
+permanent|永久的|adj|This is a permanent solution.
+permit|允许；许可证|v/n|Smoking is not permitted.
+persist|坚持|v|If you persist, you will succeed.
+perspective|视角；观点|n|From my perspective, it's unfair.
+persuade|说服|v|He persuaded me to stay.
+petrol|汽油|n|The petrol price is rising.
+phenomenon|现象|n|The phenomenon is rare.
+philosophy|哲学|n|She studied philosophy in college.
+pile|堆|n/v|The papers are piled on the desk.
+pillar|柱子；支柱|n|Trust is a pillar of friendship.
+pioneer|先驱|n|He was a pioneer in aviation.
+plain|简单的；平原|adj/n|The plain truth is that he lied.
+pleasure|快乐|n|It's a pleasure to meet you.
+pledge|誓言；保证|n/v|He pledged to support the cause.
+plot|情节；阴谋|n|The plot of the movie is complicated.
+plug|插头；堵塞|n/v|Plug in the charger.
+plus|加；正的|prep/adj|Two plus two equals four.
+poetry|诗歌|n|She writes poetry.
+polish|擦亮；润色|v|Polish your shoes before the interview.
+portrait|肖像|n|She painted a portrait of her mother.
+pose|摆姿势；造成|v/n|The question poses a challenge.
+possess|拥有|v|She possesses great talent.
+potential|潜在的；潜力|adj/n|The potential for growth is huge.
+pour|倾倒；涌出|v|Pour the milk into the glass.
+poverty|贫穷|n|The family lived in poverty.
+powerful|强大的|adj|The engine is powerful.
+practical|实际的；实用的|adj|The advice is practical.
+pray|祈祷|v|They prayed for peace.
+precede|先于|v|The introduction precedes the main text.
+precious|珍贵的|adj|Time is precious.
+predict|预测|v|The weather forecast predicts rain.
+pregnant|怀孕的|adj|She is pregnant.
+prejudice|偏见|n|Racial prejudice is harmful.
+preliminary|初步的|adj|The preliminary results are promising.
+premier|首要的；总理|adj/n|The premier university offers top education.
+prescribe|开药方；规定|v|The doctor prescribed antibiotics.
+present|呈现；出席；礼物|v/adj/n|Present your findings to the class.
+preserve|保存；保护|v|We must preserve the environment.
+press|按压；新闻|v/n|Press the button.
+presume|假定|v|I presume you are Mr. Smith.
+pretend|假装|v|Don't pretend to know.
+prevail|盛行；获胜|v|Justice will prevail.
+previous|以前的|adj|The previous owner left.
+primary|主要的；初级的|adj|Primary education is compulsory.
+prime|首要的；最好的|adj|The prime minister gave a speech.
+principal|主要的；校长|adj/n|The principal reason is cost.
+principle|原则|n|Honesty is a moral principle.
+prior|先前的|adj|Prior experience is required.
+priority|优先|n|Make safety a priority.
+privilege|特权|n|It is a privilege to meet you.
+proceed|继续进行|v|Proceed with caution.
+produce|生产；农产品|v/n|The factory produces cars.
+profession|职业|n|Teaching is a noble profession.
+professional|专业的；专业人士|adj/n|She is a professional dancer.
+prominent|突出的；著名的|adj|She is a prominent scientist.
+promote|促进；提升|v|The campaign promotes healthy eating.
+prompt|迅速的；促使|adj/v|The prompt response saved the day.
+proof|证据|n|The proof is in the data.
+proper|适当的|adj|Proper care is needed.
+property|财产；性质|n|The property is worth millions.
+proportion|比例|n|The proportion of women increased.
+proposal|提议|n|The proposal was accepted.
+propose|提议；求婚|v|He proposed a new plan.
+prospect|前景；可能性|n|The job prospects are good.
+protein|蛋白质|n|Protein is essential for muscles.
+prove|证明|v|The theory proved correct.
+province|省|n|Guangdong is a province in China.
+provision|供应；条款|n|The provision of clean water is essential.
+psychology|心理学|n|She majors in psychology.
+publication|出版；出版物|n|The publication is monthly.
+pump|泵；抽水|n/v|The pump circulates water.
+purchase|购买|v/n|She purchased a new car.
+pursue|追求；追赶|v|He pursued his dream.
+qualification|资格|n|She has the right qualifications.
+quantity|数量|n|A large quantity of food was wasted.
+questionnaire|问卷|n|Please fill out this questionnaire.
+queue|队列；排队|n/v|We queued for tickets.
+quit|放弃；辞职|v|He quit his job.
+quote|引用；报价|v/n|She quoted a famous saying.
+racial|种族的|adj|Racial equality is a human right.
+radical|根本的；激进的|adj|Radical changes are needed.
+rage|愤怒|n|He flew into a rage.
+random|随机的|adj|The selection is random.
+range|范围；排列|n/v|The price range is wide.
+rank|等级；排名|n/v|He ranks among the best.
+rapid|快速的|adj|Rapid growth leads to inflation.
+rate|比率；速度|n|The birth rate is declining.
+ratio|比率|n|The ratio of boys to girls is 3:2.
+rational|理性的|adj|Make a rational decision.
+raw|生的；未加工的|adj|Raw materials are cheap.
+react|反应|v|How did he react to the news?
+realistic|现实的|adj|Set realistic goals.
+realm|领域|n|The realm of science is vast.
+rear|后面；后方的|n/adj|The rear door is open.
+reasonable|合理的|adj|The price is reasonable.
+recall|回忆|v|Recall the events of that day.
+receiver|接收器；听筒|n|He picked up the receiver.
+reception|接待；接收|n|The wedding reception was grand.
+reckon|认为；估算|v|I reckon it's true.
+recognize|认出；承认|v|She recognized him immediately.
+recover|恢复|v|He recovered from illness.
+recreation|娱乐|n|Recreation facilities include a pool.
+recruit|招募；新兵|v/n|The company recruited new staff.
+refer|参考；提及|v|Refer to the manual.
+reflect|反射；反映|v|The mirror reflects light.
+reform|改革|n/v|The education reform is underway.
+refresh|使恢复精力|v|A nap refreshed him.
+refugee|难民|n|Refugees fled the war zone.
+regard|看待；尊重|v/n|She is highly regarded.
+register|登记；注册|v/n|Register for the course.
+regulate|调节；管理|v|The government regulates the industry.
+reinforce|加强|v|The walls were reinforced.
+reject|拒绝；排斥|v|He rejected the offer.
+relate|关联；叙述|v|The story relates to his childhood.
+relevant|相关的|adj|The information is relevant.
+relief|缓解；救济|n|The medicine brought relief.
+religion|宗教|n|Freedom of religion is protected.
+reluctant|不情愿的|adj|He was reluctant to leave.
+rely|依赖|v|You can rely on me.
+remark|评论|v/n|He remarked on the weather.
+remedy|补救；治疗|n/v|The remedy for the problem is simple.
+remote|遥远的|adj|The village is remote.
+remove|移除|v|Remove the lid.
+render|使得；提供|v|The news rendered him speechless.
+renew|更新；续签|v|Renew your passport.
+rent|租金；租用|n/v|The rent is due on the 1st.
+replace|取代|v|The old model was replaced.
+represent|代表|v|The red lines represent roads.
+reproduce|繁殖；复制|v|The cells reproduce quickly.
+reputation|名誉|n|She has a good reputation.
+require|需要；要求|v|The job requires experience.
+resemble|类似于|v|He resembles his father.
+reserve|保留；储备|v/n|Reserve a table for two.
+resign|辞职|v|He resigned from his post.
+resist|抵抗；抵制|v|She couldn't resist the chocolate.
+resolution|决议；决心|n|The resolution was passed unanimously.
+resolve|解决|v|They resolved the conflict.
+respond|回应|v|Respond to the invitation.
+restore|恢复；修复|v|The painting was restored.
+restrict|限制|v|Speed is restricted to 30 mph.
+retain|保留|v|Retain your receipt.
+reveal|揭示|v|The investigation revealed the truth.
+revenge|复仇|n/v|He sought revenge.
+reverse|逆转；相反的|v/adj/n|Reverse the car.
+revolution|革命|n|The industrial revolution changed everything.
+rhythm|节奏|n|The rhythm of the music is catchy.
+ridiculous|荒谬的|adj|That's a ridiculous idea.
+rigid|僵硬的；严格的|adj|The rules are rigid.
+ripe|成熟的|adj|The fruit is ripe.
+rival|竞争对手|n|The two companies are rivals.
+robust|强健的；稳健的|adj|The economy is robust.
+romantic|浪漫的|adj|She loves romantic movies.
+rotate|旋转|v|The Earth rotates on its axis.
+rough|粗糙的；粗略的|adj|The surface is rough.
+royal|皇家的|adj|The royal family attended.
+ruin|毁灭；废墟|v/n|The storm ruined the crops.
+rural|农村的|adj|Rural areas lack infrastructure.
+sacrifice|牺牲|v/n|He sacrificed his life.
+sake|缘故|n|For the sake of peace.
+satellite|卫星|n|The satellite orbits the Earth.
+satisfaction|满意|n|Customer satisfaction is our goal.
+satisfy|满足|v|The food satisfied my hunger.
+scale|规模；刻度|n|The scale of the problem is huge.
+scan|扫描|v|Scan the barcode.
+scandal|丑闻|n|The scandal shocked the nation.
+scarce|稀缺的|adj|Water is scarce in the desert.
+scatter|分散|v|The seeds were scattered.
+scholar|学者|n|She is a renowned scholar.
+scope|范围|n|The scope of the project is broad.
+scratch|抓；划痕|v/n|The cat scratched the sofa.
+seal|印章；密封|n/v|Seal the envelope.
+secondary|次要的；中等的|adj|Secondary education is mandatory.
+secure|安全的；获得|adj/v|The door is secure.
+seek|寻找；寻求|v|Seek professional advice.
+segment|部分；片段|n|The segment was cut.
+select|选择|v|Select your preferred option.
+senior|高级的；年长的|adj|Senior citizens get discounts.
+sensitive|敏感的|adj|She is sensitive to criticism.
+sequence|序列；顺序|n|The sequence of events is important.
+session|会议；学期|n|The training session begins.
+settle|解决；定居|v|They settled the dispute.
+severe|严重的；严厉的|adj|The storm caused severe damage.
+sharp|锋利的；尖锐的|adj|The knife is sharp.
+shelter|庇护所；躲避|n/v|Take shelter from the rain.
+shift|转移；轮班|v/n|Shift your weight.
+shine|发光；出色|v|The sun shines brightly.
+shortage|短缺|n|There is a shortage of water.
+shortly|不久|adv|Shortly after, he left.
+significance|重要性|n|The significance of the discovery is immense.
+significant|重要的；显著的|adj|There is a significant difference.
+silence|沉默|n|Silence is golden.
+simplify|简化|v|Simplify the process.
+sin|罪过|n|It is a sin to lie.
+sincere|真诚的|adj|She gave a sincere apology.
+site|地点；网站|n|The construction site is noisy.
+sketch|素描；草图|n/v|He sketched the scene.
+skilled|熟练的|adj|She is a skilled worker.
+skip|跳过；遗漏|v|Skip the first chapter.
+slight|轻微的|adj|There is a slight difference.
+slip|滑倒；纸条|v/n|He slipped on the ice.
+smooth|光滑的；顺利的|adj|The transition was smooth.
+snap|折断；拍照|v|The branch snapped.
+so-called|所谓的|adj|The so-called expert was wrong.
+software|软件|n|The software needs updating.
+sole|唯一的|adj|He is the sole survivor.
+solid|固体的；坚固的|adj|The foundation is solid.
+somewhat|有点|adv|The task is somewhat difficult.
+sophisticated|复杂精密的|adj|The system is sophisticated.
+sort|种类；分类|n/v|Sort the files alphabetically.
+souvenir|纪念品|n|Buy some souvenirs.
+specific|具体的|adj|Give specific examples.
+specify|具体说明|v|Specify the requirements.
+spectacular|壮观的|adj|The sunset was spectacular.
+split|分裂；分开|v|The group split into two.
+sponsor|赞助商；赞助|n/v|The event is sponsored by a bank.
+spot|地点；发现|n/v|I spotted a mistake.
+stable|稳定的|adj|The economy is stable.
+stake|赌注；股份|n|The stakes are high.
+standpoint|立场|n|From a legal standpoint, it's allowed.
+starve|挨饿|v|The refugees starved.
+statistics|统计|n|Statistics show a decline.
+status|地位；状态|n|What is your marital status?
+steady|稳定的|adj|Steady progress is being made.
+steep|陡峭的|adj|The hill is steep.
+stem|茎；源于|n/v|The problem stems from poor management.
+stick|粘住；棍子|v/n|Stick the poster on the wall.
+stimulate|刺激|v|Exercise stimulates blood circulation.
+stock|股票；库存|n|The stock market fell.
+storage|存储|n|Storage space is limited.
+strain|紧张；拉伤|n/v|The strain of work is too much.
+strategy|策略|n|Develop a strategy for success.
+strengthen|加强|v|Strengthen your muscles.
+stretch|伸展|v/n|Stretch your legs.
+strike|罢工；打击|v/n|The workers went on strike.
+structure|结构|n|The building's structure is sound.
+studio|工作室；演播室|n|The artist works in a studio.
+subdue|制服；抑制|v|The police subdued the suspect.
+submit|提交；屈服|v|Submit your application.
+subsequent|随后的|adj|Subsequent events confirmed his theory.
+substance|物质；实质|n|The substance is toxic.
+substantial|大量的；实质的|adj|There is substantial evidence.
+substitute|替代品；替代|n/v|Use honey as a substitute for sugar.
+subtle|微妙的|adj|The difference is subtle.
+succeed|成功|v|She succeeded in her career.
+succession|连续；继承|n|The succession of kings continued.
+sufficient|足够的|adj|The supply is sufficient.
+sum|总和；总结|n/v|The sum of 2 and 3 is 5.
+summarize|总结|v|Summarize the main points.
+summit|峰会；顶点|n|The summit was productive.
+superior|优越的|adj|The quality is superior.
+supplement|补充|n/v|Taking vitamins supplements your diet.
+suppose|假设|v|Suppose it rains, what then?
+supreme|最高的；至高的|adj|The Supreme Court ruled.
+surge|激增|n/v|The surge in demand caused shortages.
+surgery|外科手术|n|He underwent surgery.
+surplus|过剩|n|The budget surplus is welcome.
+surrender|投降；交出|v|The enemy surrendered.
+surround|包围|v|The house is surrounded by trees.
+suspect|怀疑；嫌疑犯|v/n|The police suspect him.
+suspend|暂停；悬挂|v|The license was suspended.
+sustain|维持；支撑|v|The ecosystem sustains life.
+swallow|吞咽|v|Swallow the pill.
+swap|交换|v|Swap seats with me.
+sympathy|同情|n|She expressed sympathy for the victims.
+symptom|症状|n|The symptoms include fever.
+syndrome|综合征|n|Down syndrome is a genetic condition.
+tackle|处理； tackle|v|We need to tackle the problem.
+tactic|战术；策略|n|The tactic worked well.
+tailor|裁缝；定制|n/v|The suit was tailored to fit.
+tedious|乏味的|adj|The work is tedious.
+temporary|临时的|adj|This is a temporary solution.
+tendency|趋势；倾向|n|There is a tendency to gain weight.
+tender|温柔的；嫩的|adj|The meat is tender.
+tense|紧张的；时态|adj/n|He looked tense.
+terminal|终点站；末期的|n/adj|The terminal is crowded.
+territory|领土；领域|n|The territory is disputed.
+terror|恐怖|n|The terror attack shocked the world.
+textile|纺织品|n|The textile industry is growing.
+theme|主题|n|The theme of the party is Hawaiian.
+theoretical|理论上的|adj|Theoretical physics is complex.
+therapy|治疗|n|Physical therapy helps recovery.
+thereby|因此|adv|He saved money thereby buying a house.
+thermal|热的；保暖的|adj|Thermal underwear keeps you warm.
+thorough|彻底的|adj|Do a thorough check.
+thoughtful|深思的；体贴的|adj|It was thoughtful of you.
+threaten|威胁|v|The storm threatens the coast.
+thrive|繁荣|v|The business thrived.
+thus|因此|adv|Thus, the problem was solved.
+tidy|整洁的|adj|Keep your room tidy.
+tight|紧的|adj|The shoes are tight.
+timber|木材|n|The timber is used for furniture.
+tissue|组织；纸巾|n|Paper tissues are soft.
+tolerance|容忍；公差|n|The tolerance level is low.
+tone|语气；色调|n|Her tone was angry.
+tough|坚韧的；艰难的|adj|The exam was tough.
+track|轨道；追踪|n/v|The police tracked the suspect.
+tragedy|悲剧|n|The tragedy affected everyone.
+transfer|转移；转让|v/n|Transfer the money to my account.
+transform|转变；改造|v|The city transformed completely.
+transition|过渡；转变|n|The transition to democracy was peaceful.
+transmit|传输；传播|v|The radio transmits signals.
+transparent|透明的|adj|The glass is transparent.
+trap|陷阱；困住|n/v|The animal was trapped.
+treasure|宝藏；珍视|n/v|She treasures her memories.
+treaty|条约|n|The treaty was signed.
+tremendous|巨大的|adj|The effort was tremendous.
+tribe|部落|n|The tribe lives in the forest.
+trigger|触发；扳机|v/n|The incident triggered protests.
+triumph|胜利|n|The triumph was celebrated.
+troop|部队|n|The troops marched forward.
+tropical|热带的|adj|Tropical fruits are delicious.
+tube|管；地铁|n|The tube is underground.
+tuition|学费|n|Tuition fees are high.
+tune|曲调；调音|n/v|The tune is catchy.
+turnover|营业额；人员流动|n|The turnover rate is high.
+tutor|导师；家教|n|She hired a tutor.
+typical|典型的|adj|This is a typical example.
+ultimate|最终的；终极的|adj|The ultimate goal is peace.
+unanimous|一致的|adj|The decision was unanimous.
+uncover|揭露|v|The investigation uncovered the truth.
+undergo|经历|v|She underwent surgery.
+underline|强调；在…下划线|v|Underline the key words.
+undermine|削弱|v|The scandal undermined his authority.
+undertake|承担；着手|v|He undertook the responsibility.
+unique|独特的|adj|Each snowflake is unique.
+universal|普遍的；全世界的|adj|Universal healthcare is a goal.
+update|更新|v/n|Update your software.
+upgrade|升级|v/n|Upgrade to the premium version.
+uphold|维护；支持|v|The court upheld the ruling.
+upper|上面的；较高的|adj|The upper floor is empty.
+upset|心烦的；打翻|adj/v|She was upset by the news.
+urban|城市的|adj|Urban development is rapid.
+urge|催促；冲动|v/n|He urged her to apply.
+urgent|紧急的|adj|It is urgent that you reply.
+usage|用法；使用量|n|The usage of plastic has increased.
+utility|效用；公用事业|n|Utility bills are due.
+utilize|利用|v|Utilize your resources wisely.
+utmost|极度的；最大的|adj|With utmost respect.
+vacuum|真空；吸尘器|n|The vacuum cleaner is broken.
+vague|模糊的|adj|His explanation was vague.
+valid|有效的；合理的|adj|The ticket is valid for one day.
+vanish|消失|v|The magician vanished.
+variable|可变的；变量|adj/n|The variable changes with time.
+variation|变化；变异|n|There is variation in color.
+vast|广阔的；巨大的|adj|The desert is vast.
+venture|冒险；创业|n/v|The business venture failed.
+verbal|口头的；动词的|adj|Verbal communication is key.
+verdict|裁决|n|The jury reached a verdict.
+verify|核实|v|Verify your identity.
+versus|对抗|prep|The match is China versus Japan.
+vertical|垂直的|adj|The cliff is vertical.
+vessel|容器；船只|n|The vessel sailed across the ocean.
+veteran|老兵；老手|n|He is a veteran of the war.
+viable|可行的|adj|The plan is viable.
+vibrant|充满活力的|adj|The city is vibrant.
+viewpoint|观点|n|From a scientific viewpoint.
+vigorous|有力的；精力充沛的|adj|He took vigorous exercise.
+violate|违反|v|The action violates the law.
+virtual|虚拟的；几乎的|adj|Virtual reality is immersive.
+virtue|美德|n|Patience is a virtue.
+visible|可见的|adj|The stars are visible.
+visual|视觉的|adj|Visual aids help learning.
+vital|至关重要的|adj|Water is vital for life.
+vivid|生动的|adj|The description was vivid.
+voluntary|自愿的|adj|The work is voluntary.
+vulnerable|脆弱的；易受伤的|adj|Children are vulnerable.
+wander|漫步；走神|v|He wandered around the park.
+warranty|保修|n|The warranty covers repairs.
+warrior|战士|n|The warrior fought bravely.
+weapon|武器|n|The weapon was confiscated.
+welfare|福利|n|The welfare system supports the poor.
+whereas|然而|conj|Whereas I prefer tea, he likes coffee.
+widespread|广泛的|adj|The use of smartphones is widespread.
+willing|愿意的|adj|She is willing to help.
+withdraw|撤回；提款|v|Withdraw money from the bank.
+workforce|劳动力|n|The workforce is aging.
+worship|崇拜|v/n|They worship in the temple.
+worthwhile|值得的|adj|The effort was worthwhile.
+wrap|包裹|v|Wrap the gift in paper.
+yield|产量；屈服|v/n|The farm yields a good harvest.
+zone|区域|n|The zone is restricted.
+`;
+
+const PHRASE_RAW = `
+according to|根据
+account for|解释；占（比例）
+achieve a goal|实现目标
+adapt to|适应
+adjust to|适应
+agree to do|同意做某事
+agree with|同意；与…一致
+ahead of time|提前
+aim at|旨在；瞄准
+apply for|申请
+apply to|适用于
+approve of|赞成
+arise from|由…引起
+as a consequence|因此
+as a matter of fact|事实上
+as a result of|由于
+as far as I am concerned|就我而言
+as long as|只要
+at all costs|不惜一切代价
+at random|随机地
+at stake|处于危险中
+attach to|附属于；重视
+attend to|处理；照料
+base on|基于
+be based on|基于
+be fond of|喜欢
+be known for|因…而闻名
+be responsible for|对…负责
+be short of|缺乏
+be supposed to|应该
+be willing to|愿意
+bear in mind|记住
+bear the cost|承担费用
+because of|因为
+behind schedule|落后于计划
+belong to|属于
+benefit from|受益于
+both ... and|两者都
+break down|出故障；分解
+break out|爆发
+bridge the gap|缩小差距
+bring about|带来；引起
+bring up|抚养；提出
+build trust|建立信任
+build up|建立；增强
+burn out|耗尽；烧毁
+by accident|偶然
+by chance|碰巧
+by means of|通过
+by no means|绝不
+call for|需要；要求
+call off|取消
+call on|拜访；号召
+carry on|继续
+carry out|执行；实施
+catch up with|赶上
+come across|偶然遇到
+come up with|想出
+compared with|与…相比
+concentrate on|专注于
+consist of|由…组成
+contribute to|有助于；导致
+cope with|应对
+count on|依靠
+create jobs|创造就业
+cut down|削减
+cut off|切断
+deal with|处理
+depend on|依靠；取决于
+develop skills|培养技能
+die out|灭绝
+differ from|与…不同
+different from|与…不同
+distinguish between|区分
+draw a conclusion|得出结论
+draw up|起草
+dress up|打扮
+drop out|退学；退出
+due to|由于
+either ... or|要么…要么
+end up|最终成为；最终处于
+engage in|从事；参与
+ensure safety|确保安全
+even if|即使
+even though|尽管
+face a challenge|面对挑战
+figure out|弄明白
+fill in|填写
+find out|查明
+first of all|首先
+focus on|专注于
+for example|例如
+for good|永久地
+for instance|例如
+for the sake of|为了
+for the time being|暂时
+for this reason|因此
+from my perspective|从我的角度看
+from scratch|从头开始
+fulfill a dream|实现梦想
+gain access to|获得…的途径
+get rid of|摆脱
+give in|屈服
+give up|放弃
+go through|经历；检查
+grow up|长大
+guarantee quality|保证质量
+hand in|上交
+have access to|有机会接触
+have an impact on|对…有影响
+have confidence in|对…有信心
+have difficulty in|在…方面有困难
+have no choice but to|别无选择只能
+hold back|阻止；抑制
+hold on|坚持；稍等
+hold out|伸出；坚持
+however|然而
+identify with|认同
+improve efficiency|提高效率
+in a row|连续地
+in addition|此外
+in addition to|除…之外
+in advance|提前
+in brief|简言之
+in case of|万一
+in charge|负责
+in charge of|负责
+in common|共同
+in comparison with|与…相比
+in conclusion|总之
+in demand|有需求
+in detail|详细地
+in doubt|不确定
+in effect|实际上；生效
+in essence|本质上
+in fashion|流行
+in general|总的来说
+in my opinion|我认为
+in need|需要帮助
+in order|有序；为了
+in other words|换句话说
+in particular|尤其
+in person|亲自
+in practice|在实践中
+in principle|原则上
+in public|公开地
+in question|讨论中的
+in return|作为回报
+in short|简言之
+in sight|在望；看得见
+in spite of|尽管
+in stock|有货
+in summary|总之
+in terms of|就…而言
+in the face of|面对
+in the long run|从长远看
+in the short term|短期内
+in theory|理论上
+in time|及时
+in touch|保持联系
+in trouble|处于困境
+in turn|依次；反过来
+in vain|徒劳
+instead of|代替
+interfere with|干扰
+it goes without saying that|不言而喻
+it is generally accepted that|人们普遍接受
+it is widely believed that|人们普遍认为
+keep in mind|记住
+keep pace with|跟上
+keep track of|记录；跟踪
+keep up with|跟上
+lead to|导致
+look forward to|期待
+look into|调查
+look up to|尊敬
+lose track of|失去…的线索
+maintain a balance|保持平衡
+maintain order|维持秩序
+make a decision|做决定
+make a difference|有影响
+make a living|谋生
+make an effort|努力
+make room for|为…腾出空间
+make sense|讲得通
+make the most of|充分利用
+make up|组成；编造；化妆
+make up for|弥补
+make use of|利用
+make way for|为…让路
+meet the demand|满足需求
+meet the standard|达到标准
+meet with|遭遇；会见
+neither ... nor|既不…也不
+nevertheless|尽管如此
+not only ... but also|不仅…而且
+object to|反对
+occur to|想到
+offer an opportunity|提供机会
+on average|平均
+on board|在船上/飞机上
+on business|出差
+on duty|值班
+on foot|步行
+on guard|警惕
+on holiday|度假
+on purpose|故意
+on sale|出售
+on strike|罢工
+on the contrary|相反
+on the decline|在下降
+on the one hand|一方面
+on the other hand|另一方面
+on the rise|在上升
+on the spot|当场
+on the whole|总体而言
+on time|准时
+on trial|受审；试用
+out of control|失控
+out of date|过时
+out of order|出故障
+out of place|不合适
+out of reach|够不着
+overcome difficulties|克服困难
+owing to|由于
+participate in|参加
+pay attention to|注意
+pay off|还清；得到回报
+pick up|捡起；接人；学会
+play a part in|在…中起作用
+play a role in|在…中起作用
+point out|指出
+prevent from|阻止
+promote development|促进发展
+protect the environment|保护环境
+provide support|提供支持
+provide with|提供
+pursue a career|追求事业
+put off|推迟
+put up with|忍受
+raise awareness|提高意识
+rather than|而不是
+reach an agreement|达成协议
+reduce costs|降低成本
+refer to|提到；参考
+rely on|依赖
+result from|由…引起
+result in|导致
+run out of|用完
+save energy|节约能源
+seize an opportunity|抓住机会
+serve as|充当
+set aside|留出；搁置
+set up|建立
+settle a dispute|解决争端
+settle down|定居；安定
+show up|出现
+similar to|与…相似
+so that|以便
+solve a problem|解决问题
+spread awareness|传播意识
+stand for|代表；容忍
+stand out|突出
+stick to|坚持
+strike a balance|取得平衡
+such as|例如
+take action|采取行动
+take advantage of|利用
+take apart|拆开
+take care of|照顾
+take charge of|负责
+take for granted|认为理所当然
+take in|吸收；理解；欺骗
+take into account|考虑到
+take into consideration|考虑到
+take on|承担；呈现
+take over|接管
+take part in|参加
+take place|发生
+take pride in|以…为傲
+take responsibility for|对…负责
+take steps|采取措施
+take turns|轮流
+take up|占据；开始从事
+thanks to|多亏
+that is to say|也就是说
+the more ... the more|越…越…
+there is no doubt that|毫无疑问
+therefore|因此
+to a great extent|在很大程度上
+to some extent|在某种程度上
+to sum up|总之
+turn down|拒绝；调低
+turn out|结果是
+turn to|求助于
+under control|在控制下
+under pressure|在压力下
+under way|在进行中
+up to date|最新的
+what is more|而且
+within reach|触手可及
+without doubt|无疑
+work out|解决；锻炼；结果是
+wrap up|结束；包装
+yield to|屈服于
+`;
+
+function parseData(raw){
+  const out = [];
+  const seen = new Set();
+  raw.split('\n').forEach(line => {
+    line = line.trim();
+    const parts = line.split('|');
+    if(parts.length < 2) return;
+    const en = parts[0].trim();
+    const zh = parts[1].trim();
+    const pos = (parts[2] || '').trim();
+    const example = (parts[3] || '').trim();
+    if(!en || !zh) return;
+    const k = en.toLowerCase();
+    if(seen.has(k)) return;
+    seen.add(k);
+    out.push({ en, zh, pos, example });
+  });
+  return out;
+}
+
+const WORDS = parseData(WORD_RAW);
+const PHRASES = parseData(PHRASE_RAW);
+
+/* ================= 常量与状态 ================= */
+const $ = id => document.getElementById(id);
+const leftCol = $('left'), rightCol = $('right'), svg = $('lines');
+const ERR_KEY = 'hs_english_match_errors_v1';
+const PREF_KEY = 'hs_english_match_prefs_v1';
+
+const HINTS = {
+  word: '把高中词汇和它的中文意思配对。点英文卡片可以听发音，配对成功会显示例句。',
+  phrase: '把高中搭配和它的中文意思配对。',
+  review: '错词复习：配对正确，这个词就会从错词本里移除。'
+};
+
+const POS_LABEL = {
+  n: 'n. 名词',
+  v: 'v. 动词',
+  adj: 'adj. 形容词',
+  adv: 'adv. 副词',
+  pron: 'pron. 代词',
+  prep: 'prep. 介词',
+  conj: 'conj. 连词',
+  art: 'art. 冠词',
+  num: 'num. 数词',
+  int: 'int. 感叹词',
+  modal: 'modal v. 情态动词'
+};
+
+function posText(pos){
+  if(!pos) return '';
+  if(pos.includes('/')) return pos.split('/').map(p => (POS_LABEL[p] || p).split(' ')[0]).join('/');
+  return POS_LABEL[pos] || pos;
+}
+
+let mode = 'word';
+let pairs = [];
+let matched = 0, score = 0, combo = 0, hits = 0, misses = 0;
+let roundNo = 1, completedRounds = 0;
+let sel = null, lock = false, gen = 0;
+const recent = { word: [], phrase: [] };
+
+let ttsOn = true, sfxOn = true;
+
+/* ================= 小工具 ================= */
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function shuffle(a){
+  a = a.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ================= 偏好设置 ================= */
+(function loadPrefs(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
+    if(p.tts === false) ttsOn = false;
+    if(p.sfx === false) sfxOn = false;
+  }catch(e){}
+})();
+function savePrefs(){
+  try{ localStorage.setItem(PREF_KEY, JSON.stringify({ tts: ttsOn, sfx: sfxOn })); }catch(e){}
+}
+
+/* ================= 错词本 ================= */
+let errors = [];
+try{
+  const raw = JSON.parse(localStorage.getItem(ERR_KEY) || '[]');
+  errors = Array.isArray(raw) ? raw : [];
+}catch(e){ errors = []; }
+
+function saveErrors(){
+  try{ localStorage.setItem(ERR_KEY, JSON.stringify(errors)); }catch(e){}
+}
+function addError(en, zh, wrong, pos, example){
+  if(!en || !zh) return;
+  const hit = errors.find(x => String(x.en).toLowerCase() === String(en).toLowerCase());
+  if(hit){
+    hit.n = (hit.n || 1) + 1;
+    hit.wrong = wrong || '';
+    hit.zh = zh;
+    if(pos) hit.pos = pos;
+    if(example) hit.example = example;
+    hit.ts = Date.now();
+  }else{
+    errors.push({ en, zh, wrong: wrong || '', pos: pos || '', example: example || '', n: 1, ts: Date.now() });
+  }
+  errors.sort((a, b) => (b.n || 1) - (a.n || 1) || (b.ts || 0) - (a.ts || 0));
+  if(errors.length > 300) errors.length = 300;
+  saveErrors();
+  updateBookBadge();
+}
+function removeError(en){
+  const key = String(en).toLowerCase();
+  errors = errors.filter(x => String(x.en).toLowerCase() !== key);
+  saveErrors();
+  updateBookBadge();
+}
+function updateBookBadge(){
+  $('bookCount').textContent = errors.length;
+  $('bookBtn').classList.toggle('has-err', errors.length > 0);
+}
+
+/* ================= 发音（TTS） ================= */
+let voices = [];
+function refreshVoices(){
+  try{
+    voices = ('speechSynthesis' in window) ? window.speechSynthesis.getVoices() : [];
+  }catch(e){ voices = []; }
+}
+if('speechSynthesis' in window){
+  refreshVoices();
+  try{ window.speechSynthesis.addEventListener('voiceschanged', refreshVoices); }catch(e){}
+}
+const PREFERRED_VOICE = /samantha|alex|aria|zira|google us english|google uk english female|karen|daniel/i;
+
+function speak(text){
+  if(!ttsOn || !text) return;
+  if(!('speechSynthesis' in window)) return;
+  try{
+    const synth = window.speechSynthesis;
+    if(synth.speaking || synth.pending) synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.9;
+    u.pitch = 1;
+    u.volume = 1;
+    if(!voices.length) refreshVoices();
+    const v = voices.find(x => /^en[-_]US/i.test(x.lang) && PREFERRED_VOICE.test(x.name))
+      || voices.find(x => /^en[-_]US/i.test(x.lang))
+      || voices.find(x => /^en/i.test(x.lang));
+    if(v) u.voice = v;
+    synth.speak(u);
+  }catch(e){}
+}
+
+/* ================= 音效 ================= */
+let ac = null;
+function tone(freq, dur, type, vol){
+  if(!sfxOn) return;
+  try{
+    if(!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if(ac.state === 'suspended') ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || .05, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+    o.connect(g);
+    g.connect(ac.destination);
+    o.start();
+    o.stop(ac.currentTime + dur);
+  }catch(e){}
+}
+function ding(c){ tone(1320 + Math.min(c, 8) * 35, .16, 'sine', .05); }
+function buzz(){ tone(150, .12, 'sawtooth', .045); }
+
+/* ================= 抽词 ================= */
+function sampleFrom(pool, n, scope){
+  const r = recent[scope];
+  let cand = pool.filter(p => r.indexOf(p.en) === -1);
+  if(cand.length < n * 4){ r.length = 0; cand = pool.slice(); }
+
+  const picked = [], usedEn = new Set(), usedZh = new Set();
+  let guard = 0;
+  while(picked.length < n && guard++ < 3000){
+    const p = cand[Math.floor(Math.random() * cand.length)];
+    if(!p) break;
+    if(usedEn.has(p.en) || usedZh.has(p.zh)) continue;
+    usedEn.add(p.en);
+    usedZh.add(p.zh);
+    picked.push(p);
+    r.push(p.en);
+    if(r.length > 80) r.shift();
+  }
+  return picked;
+}
+
+/* ================= 渲染 ================= */
+function posOf(en){
+  const k = String(en).toLowerCase();
+  const w = WORDS.find(x => x.en.toLowerCase() === k);
+  return w ? (w.pos || '') : '';
+}
+
+function exampleOf(en){
+  const k = String(en).toLowerCase();
+  const w = WORDS.find(x => x.en.toLowerCase() === k);
+  return w ? (w.example || '') : '';
+}
+
+function makeTile(p, idx, side){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'tile ' + (side === 'left' ? 'en' : 'zh');
+  b.dataset.idx = idx;
+  b.dataset.side = side;
+  b.dataset.lang = side === 'left' ? 'en' : 'zh';
+  b.dataset.en = p.en;
+  b.dataset.zh = p.zh;
+  b.dataset.pos = p.pos || '';
+  b.dataset.example = p.example || '';
+
+  if(side === 'left'){
+    const word = document.createElement('span');
+    word.className = 'word';
+    word.textContent = p.en;
+    b.appendChild(word);
+    if(p.pos){
+      const tag = document.createElement('span');
+      tag.className = 'pos';
+      tag.textContent = posText(p.pos);
+      b.appendChild(tag);
+    }
+  }else{
+    b.textContent = p.zh;
+  }
+
+  b.addEventListener('click', () => onTile(b));
+  return b;
+}
+
+function buildRound(){
+  gen++;
+  hideToast();
+
+  if(mode === 'review'){
+    pairs = errors.slice(0, 6).map(e => ({ en: e.en, zh: e.zh, pos: e.pos || posOf(e.en), example: e.example || exampleOf(e.en) }));
+    if(pairs.length < 2){
+      enterMode('word', false);
+      flash('错词本里的词还不够，先玩几组吧');
+      return;
+    }
+  }else if(mode === 'phrase'){
+    pairs = sampleFrom(PHRASES, 6, 'phrase');
+  }else{
+    pairs = sampleFrom(WORDS, 6, 'word');
+  }
+
+  pairs = pairs.map((p, i) => ({ en: p.en, zh: p.zh, pos: p.pos || '', example: p.example || '', idx: i }));
+
+  matched = 0;
+  sel = null;
+  lock = false;
+  leftCol.innerHTML = '';
+  rightCol.innerHTML = '';
+  svg.innerHTML = '';
+
+  const left = shuffle(pairs.map((p, i) => ({ p, i })));
+  const right = shuffle(pairs.map((p, i) => ({ p, i })));
+
+  left.forEach(x => leftCol.appendChild(makeTile(x.p, x.i, 'left')));
+  right.forEach(x => rightCol.appendChild(makeTile(x.p, x.i, 'right')));
+
+  $('matched').textContent = 0;
+  $('total').textContent = pairs.length;
+  $('round').textContent = roundNo;
+}
+
+function updateStats(){
+  $('score').textContent = score;
+  $('combo').textContent = combo;
+  $('matched').textContent = matched;
+  const total = hits + misses;
+  $('acc').textContent = total ? Math.round(hits * 100 / total) + '%' : '—';
+}
+
+/* ================= 交互 ================= */
+function select(el){
+  sel = el;
+  el.classList.add('sel');
+  if(el.dataset.lang === 'en') speak(el.dataset.en);
+}
+function deselect(){
+  if(sel) sel.classList.remove('sel');
+  sel = null;
+}
+
+function onTile(el){
+  if(lock || el.classList.contains('gone')) return;
+  if(!sel){ select(el); return; }
+  if(sel === el){ deselect(); return; }
+  if(sel.dataset.side === el.dataset.side){ deselect(); select(el); return; }
+  if(sel.dataset.idx === el.dataset.idx) match(sel, el);
+  else wrong(sel, el);
+}
+
+function match(a, b){
+  lock = true;
+  const myGen = gen;
+
+  a.classList.add('ok');
+  b.classList.add('ok');
+  drawLine(a, b);
+
+  score += 10 + Math.min(combo, 8) * 2;
+  combo++;
+  hits++;
+  matched++;
+  updateStats();
+  ding(combo);
+
+  if(mode === 'review') removeError(a.dataset.en);
+  showExample(a.dataset.en, a.dataset.zh, a.dataset.example);
+
+  setTimeout(() => {
+    if(myGen !== gen) return;
+    a.classList.add('gone');
+    b.classList.add('gone');
+    a.classList.remove('ok', 'sel');
+    b.classList.remove('ok', 'sel');
+    svg.innerHTML = '';
+    lock = false;
+    deselect();
+
+    if(matched === pairs.length){
+      roundNo++;
+      completedRounds++;
+      const milestone = completedRounds % 5 === 0;
+      showToast(milestone ? '完成 ' + completedRounds + ' 组 · 得分 ' + score : '本组完成！');
+      setTimeout(() => {
+        if(myGen !== gen) return;
+        hideToast();
+        if(mode === 'review' && errors.length < 2){
+          enterMode('word', false);
+          flash('错词复习完成');
+        }else{
+          buildRound();
+        }
+      }, milestone ? 1100 : 800);
+    }
+  }, 420);
+}
+
+function wrong(a, b){
+  lock = true;
+  const myGen = gen;
+
+  a.classList.add('bad');
+  b.classList.add('bad');
+  misses++;
+  combo = 0;
+  updateStats();
+  buzz();
+
+  const enEl = a.dataset.lang === 'en' ? a : b;
+  const zhEl = enEl === a ? b : a;
+  addError(enEl.dataset.en, enEl.dataset.zh, zhEl.textContent, enEl.dataset.pos, enEl.dataset.example);
+
+  setTimeout(() => {
+    if(myGen !== gen) return;
+    a.classList.remove('bad', 'sel');
+    b.classList.remove('bad', 'sel');
+    lock = false;
+    deselect();
+  }, 380);
+}
+
+function drawLine(a, b){
+  const board = $('board').getBoundingClientRect();
+  const ar = a.getBoundingClientRect();
+  const br = b.getBoundingClientRect();
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  const ax = ar.right - board.left, ay = ar.top + ar.height / 2 - board.top;
+  const bx = br.left - board.left, by = br.top + br.height / 2 - board.top;
+  line.setAttribute('x1', Math.min(ax, bx));
+  line.setAttribute('y1', ay);
+  line.setAttribute('x2', Math.max(ax, bx));
+  line.setAttribute('y2', by);
+  line.setAttribute('stroke', '#2E8B57');
+  line.setAttribute('stroke-width', '3');
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('opacity', '0.8');
+  svg.appendChild(line);
+  line.animate([{ opacity: 0 }, { opacity: .8 }], { duration: 160 });
+}
+
+/* ================= 提示 ================= */
+let toastTimer = 0;
+function showToast(text){
+  const d = $('done');
+  d.textContent = text;
+  d.classList.add('show');
+  clearTimeout(toastTimer);
+}
+function hideToast(){
+  $('done').classList.remove('show');
+}
+function flash(text){
+  showToast(text);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 1800);
+}
+
+/* ================= 例句 ================= */
+function resetExample(){
+  const word = $('exWord'), text = $('exText'), say = $('exSay');
+  if(!word) return;
+  word.textContent = mode === 'phrase' ? '短语模式暂不显示例句' : '配对成功后会显示例句';
+  word.classList.add('empty');
+  text.textContent = '';
+  say.hidden = true;
+}
+function showExample(en, zh, example){
+  const word = $('exWord'), text = $('exText'), say = $('exSay');
+  if(!example){
+    resetExample();
+    return;
+  }
+  word.textContent = en + (zh ? ' · ' + zh : '');
+  word.classList.remove('empty');
+  text.textContent = example;
+  say.hidden = false;
+}
+
+/* ================= 模式 ================= */
+function syncModeUI(){
+  document.querySelectorAll('.mode').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === mode);
+  });
+  document.body.dataset.mode = mode;
+  $('hint').textContent = HINTS[mode] || HINTS.word;
+  const ex = $('example');
+  if(ex) ex.style.display = (mode === 'phrase') ? 'none' : 'flex';
+  if(mode !== 'phrase') resetExample();
+}
+
+function enterMode(m, resetStats){
+  mode = m;
+  syncModeUI();
+  if(resetStats){
+    score = 0; combo = 0; hits = 0; misses = 0;
+    roundNo = 1; completedRounds = 0;
+    updateStats();
+  }
+  buildRound();
+}
+
+/* ================= 错词本界面 ================= */
+function renderBook(){
+  const el = $('errList');
+  if(!errors.length){
+    el.innerHTML = '<div class="empty">还没有错词。<br>配对出错时，会记在这里。</div>';
+  }else{
+    el.innerHTML = errors.map(e => {
+      const wrong = e.wrong ? ' · 曾误选：' + esc(e.wrong) : '';
+      const pos = e.pos || posOf(e.en);
+      const example = e.example || exampleOf(e.en);
+      return '<div class="err-row">' +
+        '<button class="say" data-en="' + esc(e.en) + '" title="发音">🔊</button>' +
+        '<div class="who">' +
+          '<div class="err-head"><b>' + esc(e.en) + '</b>' +
+            (pos ? '<span class="pos">' + esc(posText(pos)) + '</span>' : '') +
+          '</div>' +
+          '<small>' + esc(e.zh) + wrong + (example ? '<span class="ex">' + esc(example) + '</span>' : '') + '</small>' +
+        '</div>' +
+        '<span class="times">×' + (e.n || 1) + '</span>' +
+        '<button class="rm" data-en="' + esc(e.en) + '" title="已掌握，移除">✓</button>' +
+      '</div>';
+    }).join('');
+  }
+  const canReview = errors.length >= 2;
+  $('reviewBtn').disabled = !canReview;
+  $('reviewBtn').textContent = canReview ? '复习这些词' : '至少需要 2 个错词';
+  $('bookSub').textContent = errors.length
+    ? '配对出错时会自动记在这里。复习时配对正确，这个词就会移除。'
+    : '配对出错时会自动记在这里。';
+  $('overlay').classList.add('show');
+}
+function closeBook(){
+  $('overlay').classList.remove('show');
+}
+
+/* ================= 偏好按钮 ================= */
+function syncPrefs(){
+  $('ttsToggle').textContent = ttsOn ? '🔊 发音开' : '🔇 发音关';
+  $('ttsToggle').classList.toggle('on', ttsOn);
+  $('sfxToggle').textContent = sfxOn ? '🎵 音效开' : '🔕 音效关';
+  $('sfxToggle').classList.toggle('on', sfxOn);
+}
+
+/* ================= 事件 ================= */
+document.querySelectorAll('.mode').forEach(b => {
+  b.addEventListener('click', () => enterMode(b.dataset.mode, true));
+});
+
+$('restart').addEventListener('click', () => enterMode(mode, true));
+$('bookBtn').addEventListener('click', renderBook);
+$('exSay').addEventListener('click', () => {
+  const t = $('exText').textContent.trim();
+  if(t) speak(t);
+});
+$('closeBook').addEventListener('click', closeBook);
+$('overlay').addEventListener('click', e => { if(e.target === $('overlay')) closeBook(); });
+
+$('errList').addEventListener('click', e => {
+  const say = e.target.closest('.say');
+  const rm = e.target.closest('.rm');
+  if(say){ speak(say.dataset.en); return; }
+  if(rm){ removeError(rm.dataset.en); renderBook(); }
+});
+
+$('clearBook').addEventListener('click', () => {
+  if(!errors.length) return;
+  if(confirm('清空整个错词本？')){
+    errors = [];
+    saveErrors();
+    updateBookBadge();
+    renderBook();
+  }
+});
+
+$('reviewBtn').addEventListener('click', () => {
+  if(errors.length < 2) return;
+  closeBook();
+  enterMode('review', true);
+});
+
+$('ttsToggle').addEventListener('click', () => {
+  ttsOn = !ttsOn;
+  if(!ttsOn && 'speechSynthesis' in window){
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+  }
+  savePrefs();
+  syncPrefs();
+});
+
+$('sfxToggle').addEventListener('click', () => {
+  sfxOn = !sfxOn;
+  savePrefs();
+  syncPrefs();
+  if(sfxOn) ding(1);
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && $('overlay').classList.contains('show')) closeBook();
+});
+window.addEventListener('resize', () => { svg.innerHTML = ''; });
+
+/* ================= 启动 ================= */
+$('wordCount').textContent = WORDS.length;
+$('phraseCount').textContent = PHRASES.length;
+updateBookBadge();
+syncPrefs();
+enterMode('word', true);
+</script>
+</body>
+</html>

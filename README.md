@@ -9,9 +9,10 @@
 | `italiano2000-demo/` | Italiano2000 消消乐 | 200 词打字试玩版，意大利语 A1–B1 |
 | `italiano2000-matching-demo/` | Italiano2000 连连看 | 200 词试玩版，三模式 + 背景音乐，手机可玩 |
 | `english-matching-demo/` | 初中英语连线消消乐 | 免费完整版，1924 词 + 171 短语，词性标注 + TTS + 错词本 |
+| `highschool-matching-demo/` | 高中英语连线消消乐 | 免费版，1002 词 + 305 搭配，例句 + TTS + 错词本 |
 | `index.html` | 目录页 | 卡片列表（手动维护） |
 
-> `english-matching-demo/` 是免费完整版，词库有意公开；其余试玩目录只放付费产品的子集。
+> `english-matching-demo/` 和 `highschool-matching-demo/` 是免费完整版，词库有意公开；其余试玩目录只放付费产品的子集。
 
 ## 发布到 GitHub Pages
 
@@ -23,9 +24,10 @@
 5. 试玩版地址：
    - 打字：`https://<你的用户名>.github.io/demos/italiano2000-demo/`
    - 连连看：`https://<你的用户名>.github.io/demos/italiano2000-matching-demo/`
-   - 英语连连看：`https://<你的用户名>.github.io/demos/english-matching-demo/`
+   - 英语连连看（初中）：`https://<你的用户名>.github.io/demos/english-matching-demo/`
+   - 英语连连看（高中）：`https://<你的用户名>.github.io/demos/highschool-matching-demo/`
 
-> 免费账户的 GitHub Pages 需要仓库为 **Public**。付费产品只放试玩子集，不要放完整词库和付费音频；`english-matching-demo/` 是明确公开的免费完整版，不受此限。
+> 免费账户的 GitHub Pages 需要仓库为 **Public**。付费产品只放试玩子集，不要放完整词库和付费音频；`english-matching-demo/` 和 `highschool-matching-demo/` 是明确公开的免费完整版，不受此限。
 
 ## 新增一个试玩版
 
