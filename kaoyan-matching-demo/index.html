@@ -1,0 +1,1969 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>考研英语连线消消乐 · DEMO 试玩版</title>
+<style>
+  :root{
+    --bg:#FDF1F4; --panel:#FFFDF8; --line:#E7DFD2; --ink:#2C2A26; --muted:#8C8577;
+    --berry:#B3476A; --berry-soft:#FBE7EC; --berry-line:#EBC4D0; --berry-shadow:rgba(179,71,106,.24);
+    --cyan:#2F7D7A; --cyan-soft:#DFF1F0; --cyan-line:#B7DCDA; --cyan-shadow:rgba(47,125,122,.22);
+    --gold:#A97A1F; --gold-soft:#FBF3E2; --gold-line:#E8D5B0; --gold-shadow:rgba(169,122,31,.24);
+    --green:#2E8B57; --green-soft:#F1F8F3; --green-line:#B7D8C2; --green-shadow:rgba(46,139,87,.20);
+    --red:#D6452E; --badge:#7A2E4A;
+    --accent:var(--berry); --accent-soft:var(--berry-soft); --accent-line:var(--berry-line); --accent-shadow:var(--berry-shadow);
+  }
+  body[data-mode="word"]{
+    --bg:#FDF1F4;
+    --accent:var(--berry); --accent-soft:var(--berry-soft); --accent-line:var(--berry-line); --accent-shadow:var(--berry-shadow);
+  }
+  body[data-mode="phrase"]{
+    --bg:#EAF7F6;
+    --accent:var(--cyan); --accent-soft:var(--cyan-soft); --accent-line:var(--cyan-line); --accent-shadow:var(--cyan-shadow);
+  }
+  body[data-mode="review"]{
+    --bg:#FBF4E4;
+    --accent:var(--gold); --accent-soft:var(--gold-soft); --accent-line:var(--gold-line); --accent-shadow:var(--gold-shadow);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  body{
+    background:radial-gradient(900px 500px at 50% -10%, #FFFDF7 0%, var(--bg) 60%);
+    color:var(--ink); font-family:"PingFang SC","Helvetica Neue",Arial,sans-serif;
+    min-height:100vh; padding:14px 12px 22px;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .wrap{max-width:760px; margin:0 auto}
+
+  header{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin-bottom:10px}
+  h1{font-size:18px; margin:0; color:var(--accent); letter-spacing:.5px; flex:1 1 100%}
+  h1 span{font-size:11px; color:var(--muted); font-weight:400; margin-left:6px}
+  h1 b{font-weight:700; color:var(--muted)}
+
+  .modes{display:flex; gap:6px; flex:1 1 auto; flex-wrap:wrap}
+  .mode{
+    border:1px solid var(--line); background:var(--panel); color:var(--muted);
+    border-radius:999px; padding:7px 12px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit;
+  }
+  .mode.on{background:var(--accent); border-color:var(--accent); color:#fff}
+
+  .stats{display:flex; flex-wrap:wrap; gap:8px 12px; font-size:12px; color:var(--muted)}
+  .stats b{color:var(--ink); font-size:14px; margin-left:3px}
+  #score{color:var(--accent)}
+  #combo{color:var(--green)}
+
+  .hint{font-size:12.5px; color:var(--muted); margin:4px 0 10px; min-height:18px}
+
+  .board{
+    position:relative; display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:10px 14px; padding:6px 2px;
+  }
+  #lines{position:absolute; inset:0; width:100%; height:100%; pointer-events:none; overflow:visible}
+  .col{display:flex; flex-direction:column; gap:9px; min-width:0}
+
+  .tile{
+    width:100%; min-height:58px; display:flex; align-items:center;
+    padding:10px 12px; border-radius:14px; cursor:pointer;
+    background:var(--panel); border:1px solid var(--line);
+    font-family:inherit; font-size:clamp(14px,4vw,17px); line-height:1.25;
+    color:var(--ink); text-align:left; min-width:0;
+    overflow-wrap:anywhere; user-select:none;
+    transition:transform .12s, box-shadow .12s, border-color .12s, background .12s, opacity .2s;
+    box-shadow:0 2px 6px rgba(120,100,60,.06);
+  }
+  .tile:active{transform:scale(.985)}
+  .tile.en{
+    font-weight:600; border-left:4px solid var(--accent); color:#3B2A33;
+    flex-direction:column; align-items:flex-start; justify-content:center;
+    gap:1px; padding-top:8px; padding-bottom:8px;
+  }
+  .tile .word{line-height:1.2}
+  .tile .pos{
+    font-size:10.5px; font-weight:500; line-height:1.1;
+    color:#7C766B; letter-spacing:.2px;
+  }
+  .tile .word-row{display:flex; align-items:center; gap:6px; flex-wrap:wrap; min-width:0}
+  .new{
+    font-size:9.5px; font-weight:700; line-height:1.4; letter-spacing:.4px;
+    color:#fff; background:var(--badge); border-radius:999px; padding:1px 6px;
+  }
+  .new.academic{background:var(--cyan)}
+  .tile.zh{color:#4a4438}
+  .tile.sel{border-color:var(--accent); box-shadow:0 0 0 3px var(--accent-shadow)}
+  .tile.ok{border-color:var(--green); background:#F1F8F3}
+  .tile.bad{animation:shake .35s; border-color:var(--red); background:#FDF1EF}
+  .tile.gone{opacity:0; transform:scale(.94); pointer-events:none}
+  @keyframes shake{
+    0%,100%{transform:translateX(0)}
+    20%{transform:translateX(-5px)}
+    40%{transform:translateX(5px)}
+    60%{transform:translateX(-3px)}
+    80%{transform:translateX(3px)}
+  }
+
+  .bar{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-top:14px}
+  .progress{font-size:12.5px; color:var(--muted)}
+  .progress b{color:var(--accent)}
+  .bar-actions{display:flex; gap:8px}
+  .restart{
+    border:1px solid var(--line); background:var(--panel); color:var(--ink);
+    border-radius:10px; padding:8px 14px; font-size:13px; font-weight:600; cursor:pointer;
+    font-family:inherit; display:inline-flex; align-items:center; gap:6px;
+  }
+  .restart:hover{background:#F4EEDF}
+  .restart.has-err{border-color:#E0B990; background:#FFF7EC}
+  .badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:18px; height:18px; padding:0 5px; border-radius:999px;
+    background:#E8871E; color:#fff; font-size:11px; font-weight:700;
+  }
+
+  .foot{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:12px}
+  .chip{
+    border:1px solid var(--line); background:var(--panel); color:var(--muted);
+    border-radius:999px; padding:6px 12px; font-size:12.5px; cursor:pointer;
+    font-family:inherit; font-weight:600;
+  }
+  .chip.on{color:var(--accent); border-color:var(--accent-line); background:var(--accent-soft)}
+  .foot-note{font-size:11.5px; color:var(--muted)}
+
+  .done{
+    position:fixed; left:50%; top:50%; transform:translate(-50%,-50%) scale(.9);
+    background:var(--accent); color:#fff; padding:14px 22px; border-radius:14px;
+    font-size:16px; font-weight:700; opacity:0; pointer-events:none;
+    transition:opacity .2s, transform .2s; z-index:9; max-width:86vw; text-align:center;
+  }
+  .done.show{opacity:1; transform:translate(-50%,-50%) scale(1)}
+
+  .overlay{
+    position:fixed; inset:0; z-index:20; display:none; align-items:center; justify-content:center;
+    padding:18px; background:rgba(43,37,25,.46);
+  }
+  .overlay.show{display:flex}
+  .modal{
+    width:min(100%,400px); max-height:92vh; overflow:auto; text-align:center;
+    background:var(--panel); border:1px solid var(--line); border-radius:20px;
+    padding:18px 16px 14px; box-shadow:0 20px 60px rgba(40,30,10,.28);
+  }
+  .modal h2{margin:0; font-size:19px; color:var(--accent)}
+  .modal-head{display:flex; align-items:center; justify-content:space-between; gap:10px}
+  .x{
+    border:none; background:transparent; color:var(--muted); font-size:22px; line-height:1;
+    cursor:pointer; padding:2px 6px; border-radius:8px;
+  }
+  .x:hover{background:#F4EEDF}
+  .modal .sub{margin:6px 0 10px; font-size:12.5px; color:var(--muted); line-height:1.5; text-align:left}
+  .modal-actions{display:flex; gap:8px; margin-top:12px}
+  .modal-actions button{
+    flex:1; border-radius:10px; padding:10px 12px; font:inherit; font-size:13.5px;
+    font-weight:700; cursor:pointer;
+  }
+  .primary{border:1px solid var(--green); background:var(--green); color:#fff}
+  .primary:hover{filter:brightness(.96)}
+  .primary:disabled{opacity:.45; cursor:not-allowed; filter:none}
+  .ghost{border:1px solid var(--line); background:var(--panel); color:var(--ink)}
+  .ghost:hover{background:#F4EEDF}
+
+  .err-list{display:flex; flex-direction:column; gap:6px; max-height:50vh; overflow:auto; text-align:left; margin:8px 0 4px}
+  .err-row{display:flex; align-items:center; gap:8px; padding:7px 9px; border-radius:12px; background:#FBF7EE; border:1px solid var(--line)}
+  .err-row .say,.err-row .rm{
+    border:1px solid var(--line); background:#fff; border-radius:9px;
+    width:34px; height:34px; cursor:pointer; font-size:14px; flex:none; line-height:1;
+  }
+  .err-row .say:hover,.err-row .rm:hover{background:#F4EEDF}
+  .err-row .rm{color:var(--green); font-weight:700}
+  .err-row .who{flex:1; min-width:0}
+  .err-row .who .err-head{display:flex; align-items:baseline; gap:6px; flex-wrap:wrap}
+  .err-row .who .err-head b{font-size:14.5px; color:#3B2A33; overflow-wrap:anywhere}
+  .err-row .who .err-head .pos{font-size:10px; color:var(--muted); flex:none}
+  .err-row .who small{display:block; font-size:11.5px; color:var(--muted); overflow-wrap:anywhere}
+  .err-row .times{font-size:11.5px; color:var(--muted); flex:none}
+  .empty{padding:22px 8px; font-size:13px; color:var(--muted); line-height:1.7; text-align:center}
+
+
+  .example{
+    margin-top:10px; min-height:48px; padding:9px 12px;
+    border-radius:12px; background:var(--accent-soft); border:1px solid var(--accent-line);
+    display:flex; align-items:center; gap:10px;
+  }
+  .example .ex-main{flex:1; min-width:0}
+  .example .ex-word{font-size:13px; font-weight:700; color:var(--accent); line-height:1.4}
+  .example .ex-word.empty{font-weight:500; color:#A39A8A}
+  .example .ex-text{font-size:12.5px; color:#6B6357; line-height:1.45; margin-top:2px}
+  .example .ex-text:empty{display:none}
+  .example .ex-say{
+    flex:none; border:1px solid var(--accent-line); background:#FFFDF8; color:var(--accent);
+    border-radius:8px; padding:6px 10px; font-size:12px; cursor:pointer; font-family:inherit;
+  }
+  .example .ex-say:hover{background:#F4EEDF}
+  .err-row .who .ex{display:block; color:#8C8577; font-size:11px; line-height:1.45; margin-top:2px}
+
+  @media (max-width:420px){
+    body{padding:10px 8px 18px}
+    .tile{min-height:56px; padding:8px 9px; border-radius:12px}
+    .tile.en{padding-top:6px; padding-bottom:6px}
+    .tile .pos{font-size:10px}
+    .stats{gap:9px}
+    .bar{flex-wrap:wrap}
+    .bar-actions{width:100%; justify-content:flex-end}
+  }
+/* ===== 学习日历按钮 + 弹层 ===== */
+.stats-wrap{
+  display:flex; flex-direction:column; align-items:flex-end;
+  gap:6px; margin-left:auto;
+}
+.cal-btn{
+  width:32px; height:32px; flex:none;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); background:var(--panel); color:var(--accent);
+  border-radius:9px; cursor:pointer; padding:0;
+  box-shadow:0 2px 6px rgba(120,100,60,.06);
+  transition:background .12s, border-color .12s, transform .12s;
+}
+.cal-btn:hover{background:var(--accent-soft); border-color:var(--accent-line)}
+.cal-btn:active{transform:scale(.96)}
+.cal-btn svg{
+  width:18px; height:18px; display:block;
+  fill:none; stroke:currentColor; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+
+.cal-overlay{
+  position:fixed; inset:0; z-index:30;
+  display:none; align-items:center; justify-content:center;
+  padding:18px; background:rgba(43,37,25,.46);
+}
+.cal-overlay.show{display:flex}
+.cal-modal{
+  width:min(100%,430px); max-height:92vh; overflow:auto;
+  background:var(--panel); border:1px solid var(--line); border-radius:20px;
+  padding:14px 14px 12px; box-shadow:0 20px 60px rgba(40,30,10,.28);
+}
+.cal-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
+.cal-head h2{margin:0; font-size:18px; color:var(--accent); letter-spacing:.3px}
+.cal-head p{margin:3px 0 0; font-size:11.5px; color:var(--muted); line-height:1.45}
+.cal-x{
+  border:none; background:transparent; color:var(--muted);
+  font-size:22px; line-height:1; cursor:pointer; padding:2px 6px; border-radius:8px;
+}
+.cal-x:hover{background:var(--accent-soft)}
+
+.cal-nav{display:flex; align-items:center; gap:6px; margin:10px 0 9px}
+.cal-nav button{
+  border:1px solid var(--line); background:var(--panel); color:var(--muted);
+  border-radius:8px; font-family:inherit; cursor:pointer;
+}
+.cal-nav button:hover{background:var(--accent-soft); color:var(--accent)}
+.cal-prev,.cal-next{width:30px; height:30px; font-size:18px; line-height:1; padding:0}
+.cal-month{flex:1; text-align:center; font-size:15px; font-weight:700; color:var(--accent)}
+.cal-today{
+  height:30px; padding:0 9px; font-size:11.5px; font-weight:700;
+  color:var(--accent); border-color:var(--accent-line)!important;
+  background:var(--accent-soft)!important;
+}
+
+.cal-week{
+  display:grid; grid-template-columns:repeat(7,1fr); gap:4px;
+  margin-bottom:4px;
+}
+.cal-week span{text-align:center; font-size:10px; color:var(--muted)}
+.cal-grid{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+.cal-day{
+  min-width:0; min-height:55px; padding:4px 2px 3px;
+  display:flex; flex-direction:column; align-items:center;
+  border:1px solid var(--line); border-radius:9px;
+  background:var(--panel); color:var(--ink);
+  font-family:inherit; cursor:pointer; position:relative;
+  overflow:hidden; transition:background .12s, border-color .12s;
+}
+.cal-day:hover{background:var(--accent-soft)}
+.cal-day.blank{background:transparent; border-color:transparent; cursor:default; pointer-events:none}
+.cal-day .num{
+  font-size:13px; line-height:1.2; font-variant-numeric:tabular-nums;
+  font-weight:600; z-index:1;
+}
+.cal-day .lbl{
+  width:100%; margin-top:2px; text-align:center;
+  font-size:8.5px; line-height:1.25; white-space:nowrap;
+  overflow:hidden; text-overflow:ellipsis; z-index:1;
+}
+.cal-day .lbl.lunar{color:#A39A8A}
+.cal-day .lbl.ev-fest{color:#D64541; font-weight:700}
+.cal-day .lbl.ev-term{color:#2F6B4F; font-weight:700}
+.cal-day .lbl.ev-birth{color:#A4402F; font-weight:700}
+.cal-day .lbl.ev-mem{color:#8A7355; font-weight:600}
+.cal-day .lbl.ev-warn{color:#A8762A; font-weight:700}
+.cal-day.today{border-color:var(--accent); border-width:1.5px}
+.cal-day.sel{background:var(--accent-soft); border-color:var(--accent); box-shadow:0 0 0 2px var(--accent-shadow) inset}
+.cal-dot{
+  position:absolute; top:3px; right:3px; width:5px; height:5px;
+  border-radius:50%; background:#A97A1F; z-index:2;
+}
+
+.cal-detail{
+  margin-top:10px; padding-top:10px; border-top:1px solid var(--line);
+  max-height:175px; overflow:auto;
+}
+.cal-dhead{display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap}
+.cal-dhead b{font-size:14px; color:var(--ink)}
+.cal-dhead span{font-size:10.5px; color:var(--muted)}
+.cal-evs{display:flex; flex-direction:column; gap:6px; margin-top:8px}
+.cal-ev{
+  display:flex; align-items:flex-start; gap:8px;
+  padding:7px 8px; border-radius:10px;
+  background:#FBF7EE; border:1px solid var(--line);
+}
+.cal-tag{
+  flex:none; font-size:9.5px; font-weight:700; line-height:1.5;
+  padding:2px 6px; border-radius:999px; white-space:nowrap;
+}
+.cal-ev-main{min-width:0; font-size:11.5px; line-height:1.5; color:#4A4438}
+.cal-ev-main b{display:block; font-size:11.5px; color:#3B2A33; font-weight:700}
+.cal-ev-main small{display:block; margin-top:2px; font-size:10.5px; color:#8C8577; line-height:1.45}
+.cal-empty{
+  margin-top:8px; padding:12px 8px; text-align:center;
+  font-size:11.5px; color:var(--muted); line-height:1.6;
+  background:#FBF7EE; border:1px dashed var(--line); border-radius:10px;
+}
+
+/* 红圈标注 */
+.cal-day.marked{background:#FFF7F6}
+.cal-day .cal-mark{
+  position:absolute; top:3px; left:50%; transform:translateX(-50%);
+  width:23px; height:23px; border:2px solid #D64541; border-radius:50%;
+  pointer-events:none; z-index:2;
+}
+.cal-day.marked .num{color:#B33A32}
+.cal-mark-row{display:flex; align-items:center; gap:8px; margin-top:8px; flex-wrap:wrap}
+.cal-mark-btn{
+  border:1px solid #E7B7B4; background:#FBE9E8; color:#C0392B;
+  border-radius:8px; padding:4px 9px; font-size:10.5px; font-weight:700;
+  cursor:pointer; font-family:inherit;
+}
+.cal-mark-btn:hover{background:#F7DCDA}
+.cal-mark-btn.on{background:#D64541; border-color:#D64541; color:#fff}
+.cal-mark-row small{font-size:10px; color:var(--muted)}
+
+@media (max-width:420px){
+  .stats-wrap{gap:5px}
+  .cal-btn{width:30px; height:30px}
+  .cal-btn svg{width:17px; height:17px}
+  .cal-modal{border-radius:16px; padding:12px 10px 10px}
+  .cal-head h2{font-size:17px}
+  .cal-nav{margin:8px 0}
+  .cal-day{min-height:47px; padding:3px 1px 2px}
+  .cal-day .num{font-size:12px}
+  .cal-day .lbl{font-size:8px}
+  .cal-day .cal-mark{width:21px; height:21px; top:2px}
+  .cal-detail{max-height:170px}
+  .cal-ev{padding:6px 7px}
+}
+
+/* ===== 学习计时按钮 + 弹层 ===== */
+.tool-row{display:flex; align-items:center; gap:6px}
+
+.timer-btn{
+  width:32px; height:32px; flex:none; position:relative;
+  display:inline-flex; align-items:center; justify-content:center;
+  border:1px solid var(--line); background:var(--panel); color:var(--accent);
+  border-radius:9px; cursor:pointer; padding:0;
+  box-shadow:0 2px 6px rgba(120,100,60,.06);
+  transition:background .12s, border-color .12s, transform .12s;
+}
+.timer-btn:hover{background:var(--accent-soft); border-color:var(--accent-line)}
+.timer-btn:active{transform:scale(.96)}
+.timer-btn.paused{color:var(--muted)}
+.timer-btn svg{
+  width:18px; height:18px; display:block;
+  fill:none; stroke:currentColor; stroke-width:1.9;
+  stroke-linecap:round; stroke-linejoin:round;
+}
+.timer-btn .live-dot{
+  position:absolute; top:4px; right:4px; width:5px; height:5px;
+  border-radius:50%; background:var(--green);
+  box-shadow:0 0 0 2px var(--panel);
+}
+.timer-btn.paused .live-dot{display:none}
+
+.timer-overlay{
+  position:fixed; inset:0; z-index:31;
+  display:none; align-items:center; justify-content:center;
+  padding:18px; background:rgba(43,37,25,.46);
+}
+.timer-overlay.show{display:flex}
+.timer-modal{
+  width:min(100%,330px); max-height:92vh; overflow:auto;
+  background:var(--panel); border:1px solid var(--line); border-radius:20px;
+  padding:16px 16px 14px; box-shadow:0 20px 60px rgba(40,30,10,.28);
+}
+.timer-head{display:flex; align-items:flex-start; justify-content:space-between; gap:10px}
+.timer-head h2{margin:0; font-size:18px; color:var(--accent); letter-spacing:.3px}
+.timer-head p{margin:3px 0 0; font-size:11px; color:var(--muted); line-height:1.45}
+.timer-x{
+  border:none; background:transparent; color:var(--muted);
+  font-size:22px; line-height:1; cursor:pointer; padding:2px 6px; border-radius:8px;
+}
+.timer-x:hover{background:var(--accent-soft)}
+
+.timer-main{
+  margin-top:12px; padding:14px 12px 12px; text-align:center;
+  background:var(--accent-soft); border:1px solid var(--accent-line); border-radius:14px;
+}
+.timer-label{font-size:11px; color:var(--muted); letter-spacing:.5px}
+.timer-big{
+  margin:3px 0 4px; font-size:34px; line-height:1.15; font-weight:800;
+  color:var(--accent); letter-spacing:1px; font-variant-numeric:tabular-nums;
+}
+.timer-status{font-size:11px; color:var(--muted)}
+.timer-status.paused{color:#C0392B}
+
+.timer-grid{display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px}
+.timer-grid div{
+  padding:8px 10px; border-radius:10px; background:#FBF7EE; border:1px solid var(--line);
+  display:flex; flex-direction:column; gap:2px;
+}
+.timer-grid span{font-size:10px; color:var(--muted)}
+.timer-grid b{font-size:13px; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums}
+
+.timer-actions{display:flex; gap:8px; margin-top:12px}
+.timer-actions button{
+  flex:1; border-radius:10px; padding:9px 10px; font-family:inherit;
+  font-size:12.5px; font-weight:700; cursor:pointer;
+}
+.timer-primary{border:1px solid var(--accent); background:var(--accent); color:#fff}
+.timer-primary:hover{filter:brightness(.96)}
+.timer-ghost{border:1px solid var(--line); background:var(--panel); color:var(--ink)}
+.timer-ghost:hover{background:var(--accent-soft)}
+
+@media (max-width:420px){
+  .tool-row{gap:5px}
+  .timer-btn{width:30px; height:30px}
+  .timer-btn svg{width:17px; height:17px}
+  .timer-modal{border-radius:16px; padding:14px 12px 12px}
+  .timer-head h2{font-size:17px}
+  .timer-big{font-size:30px}
+}
+
+
+  .wrap{position:relative; z-index:2}
+  .demo-bar{
+    display:flex; flex-wrap:wrap; align-items:center; gap:8px 10px;
+    background:linear-gradient(100deg,#3A1E26 0%,#6E2E44 58%,#A97A1F 100%);
+    color:#fff; border-radius:14px; padding:10px 14px; margin:0 0 12px;
+    box-shadow:0 10px 24px rgba(58,30,38,.16); font-size:12.5px; line-height:1.4;
+  }
+  .demo-bar .tag{
+    flex:none; background:#F6D07A; color:#3A1E26; font-weight:900; letter-spacing:1.5px;
+    border-radius:6px; padding:4px 9px; font-size:12px;
+  }
+  .demo-bar b{font-weight:800}
+  .demo-bar .sub{color:#F7E6D2; font-size:11.5px}
+  .demo-ribbon{
+    position:fixed; top:10px; right:10px; transform:none;
+    background:#F6D07A; color:#3A1E26; font-weight:900; font-size:11px; letter-spacing:2px;
+    padding:6px 12px; border-radius:999px; z-index:60;
+    box-shadow:0 4px 12px rgba(58,30,38,.18); pointer-events:none;
+  }
+  .demo-watermark{
+    position:fixed; inset:0; display:flex; align-items:center; justify-content:center;
+    z-index:0; pointer-events:none; user-select:none;
+    font-size:170px; font-weight:900; letter-spacing:14px; color:rgba(44,42,38,.065);
+    transform:rotate(-18deg);
+  }
+  @media (max-width:520px){
+    .demo-ribbon{display:none}
+    .demo-watermark{font-size:96px; letter-spacing:6px}
+    .demo-bar{font-size:11.5px; padding:9px 11px}
+    .demo-bar .sub{flex:1 1 100%}
+  }
+</style>
+</head>
+<body data-mode="word">
+
+<div class="demo-watermark">DEMO</div>
+<div class="demo-ribbon">DEMO</div>
+<div class="wrap">
+  <div class="demo-bar"><span class="tag">DEMO</span><span><b>试玩版</b> · 仅含 216 词 + 72 搭配</span><span class="sub">完整版 2,083 词 + 500 搭配</span></div>
+  <header>
+    <h1>考研英语连线消消乐 <span>DEMO · <b id="wordCount">0</b> 词 · <b id="phraseCount">0</b> 搭配</span></h1>
+    <div class="modes">
+      <button class="mode on" data-mode="word">单词</button>
+      <button class="mode" data-mode="phrase">搭配</button>
+    </div>
+    <div class="stats-wrap">
+      <div class="tool-row">
+        <button class="cal-btn" id="calBtn" type="button" aria-label="打开学习日历" title="学习日历">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <rect x="3" y="5" width="18" height="16" rx="2"></rect>
+            <path d="M7 3v4M17 3v4M3 10h18"></path>
+            <path d="M8 14h2M14 14h2M8 18h2M14 18h2"></path>
+          </svg>
+        </button>
+        <button class="timer-btn" id="timerBtn" type="button" aria-label="学习计时" title="学习计时">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <circle cx="12" cy="13" r="8"></circle>
+            <path d="M12 9v4l2.5 1.5"></path>
+            <path d="M9 3h6"></path>
+          </svg>
+          <i class="live-dot"></i>
+        </button>
+      </div>
+      <div class="stats">
+        <div>得分<b id="score">0</b></div>
+        <div>连击<b id="combo">0</b></div>
+        <div>正确率<b id="acc">—</b></div>
+      </div>
+    </div>
+  </header>
+
+  <div class="hint" id="hint" aria-live="polite">这是 DEMO 试玩版，含 216 词 + 72 搭配。把考研词汇和它的中文意思配对。点英文卡片可以听发音；标「僻义」的是熟词僻义，标「补差」的是四级少见的学术词。</div>
+
+  <div class="board" id="board">
+    <svg id="lines"></svg>
+    <div class="col" id="left"></div>
+    <div class="col" id="right"></div>
+  </div>
+
+
+  <div class="example" id="example" aria-live="polite">
+    <div class="ex-main">
+      <div class="ex-word empty" id="exWord">配对成功后会显示词汇提示</div>
+      <div class="ex-text" id="exText"></div>
+    </div>
+    <button class="ex-say" id="exSay" hidden>🔊 朗读</button>
+  </div>
+
+  <div class="bar">
+    <div class="progress">本组 <b id="matched">0</b> / <span id="total">6</span> · 第 <b id="round">1</b> 组</div>
+    <div class="bar-actions">
+      <button class="restart" id="bookBtn">📕 错词本 <span class="badge" id="bookCount">0</span></button>
+      <button class="restart" id="restart">重新开始</button>
+    </div>
+  </div>
+
+  <div class="foot">
+    <button class="chip on" id="ttsToggle">🔊 发音开</button>
+    <button class="chip on" id="sfxToggle">🎵 音效开</button>
+    <span class="foot-note">DEMO 试玩版 · 完整版 2,083 词 + 500 搭配</span>
+  </div>
+</div>
+
+<div class="cal-overlay" id="calOverlay">
+  <div class="cal-modal" role="dialog" aria-modal="true" aria-labelledby="calTitle">
+    <div class="cal-head">
+      <div>
+        <h2 id="calTitle">学习日历</h2>
+        <p>节日 · 节气 · 纪念日</p>
+      </div>
+      <button class="cal-x" id="calClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="cal-nav">
+      <button class="cal-prev" id="calPrev" type="button" aria-label="上个月">‹</button>
+      <div class="cal-month" id="calMonth"></div>
+      <button class="cal-next" id="calNext" type="button" aria-label="下个月">›</button>
+      <button class="cal-today" id="calToday" type="button">今天</button>
+    </div>
+    <div class="cal-week">
+      <span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span><span>日</span>
+    </div>
+    <div class="cal-grid" id="calGrid"></div>
+    <div class="cal-detail" id="calDetail"></div>
+  </div>
+</div>
+
+<div class="timer-overlay" id="timerOverlay">
+  <div class="timer-modal" role="dialog" aria-modal="true" aria-labelledby="timerTitle">
+    <div class="timer-head">
+      <div>
+        <h2 id="timerTitle">学习计时</h2>
+        <p>只统计游戏页面打开且可见的时间</p>
+      </div>
+      <button class="timer-x" id="timerClose" type="button" aria-label="关闭">×</button>
+    </div>
+    <div class="timer-main">
+      <div class="timer-label">今天</div>
+      <div class="timer-big" id="timerToday">00:00:00</div>
+      <div class="timer-status" id="timerStatus">计时中</div>
+    </div>
+    <div class="timer-grid">
+      <div><span>本次</span><b id="timerSession">00:00:00</b></div>
+      <div><span>累计</span><b id="timerTotal">00:00:00</b></div>
+    </div>
+    <div class="timer-actions">
+      <button class="timer-primary" id="timerToggle" type="button">暂停</button>
+      <button class="timer-ghost" id="timerReset" type="button">重置今天</button>
+    </div>
+  </div>
+</div>
+
+<div class="done" id="done" aria-live="polite"></div>
+
+<div class="overlay" id="overlay">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="bookTitle">
+    <div class="modal-head">
+      <h2 id="bookTitle">错词本</h2>
+      <button class="x" id="closeBook" aria-label="关闭">×</button>
+    </div>
+    <p class="sub" id="bookSub">配对出错时会自动记在这里。复习时配对正确，这个词就会移除。</p>
+    <div class="err-list" id="errList"></div>
+    <div class="modal-actions">
+      <button class="primary" id="reviewBtn">复习这些词</button>
+      <button class="ghost" id="clearBook">清空</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ================= 词库 =================
+   单词：英文|中文|词性|类型|提示|朗读文本
+   搭配：英文|中文
+   重复的英文会自动去重。想增删词，直接改下面的 WORD_RAW / PHRASE_RAW。
+========================================= */
+const WORD_RAW = `
+revolt|反抗；造反，起义|n/v|new|考研新增|
+specialist|专家|n|new|考研新增|
+meditation|默想，冥想；沉思，深思，思考|n|new|考研新增|
+doctorate|博士学位;博士头衔|n|new|考研新增|
+resultant|作为结果而发生的|adj|new|考研新增|
+fuse|保险丝；引信；融合|n/v|new|考研新增|
+critic|批评家,评论家|n|new|考研新增|
+ingenious|〔计划、主意或物体〕精巧的，巧妙的|adj|new|考研新增|
+residence|住处,住宅|n|new|考研新增|
+puppet|木偶；傀儡|n|new|考研新增|
+consultant|顾问|n|new|考研新增|
+transistor|晶体管|n|new|考研新增|
+precedent|先例|n|new|考研新增|
+equation|(数学)等式,方程式；制衡局面|n|new|考研新增|
+continuous|连续的,持续的|adj|new|考研新增|
+decision|决定，抉择；判决，裁决|n|new|考研新增|
+politician|政治家,政客|n|new|考研新增|
+resistant|抵抗的，有抵抗力的|adj|new|考研新增|
+escalate|使…加剧; 加剧|v|new|考研新增|
+contradiction|矛盾，不一致；反驳，否认|n|new|考研新增|
+prosperity|繁荣,兴旺|n|new|考研新增|
+exceptional|例外的；异常的|adj|new|考研新增|
+consequently|结果，因此，所以|adv|new|考研新增|
+symmetry|对称(性)|n|new|考研新增|
+helmet|头盔,钢盔|n|new|考研新增|
+management|经营,管理；管理层；管理（方式）|n|new|考研新增|
+conductor|指挥；售票员；导体|n|new|考研新增|
+persecute|迫害|v|new|考研新增|
+marital|婚姻的,夫妻之间的|adj|new|考研新增|
+spiral|螺旋形的；螺旋，螺线；螺旋上升；盘旋|adj/n/v|new|考研新增|
+designate|任命,指派；标明,表示|v|new|考研新增|
+symposium|讨论会,专题报告会；专题论文集|n|new|考研新增|
+mercury|水银,汞|n|new|考研新增|
+simply|简直；仅仅,只是；朴素地|adv|new|考研新增|
+sensible|明智的,合理的；可觉察的,明显的|adj|new|考研新增|
+definition|定义,解释；(轮廓影像等的)清晰度|n|new|考研新增|
+presence|出席,到场,存在|n|new|考研新增|
+criminal|罪犯,刑事犯；犯罪的,刑事的|n/adj|new|考研新增|
+dorm|宿舍|n|new|考研新增|
+timid|胆怯的,怯懦的|adj|new|考研新增|
+controversial|引起争论的,有争议的|adj|new|考研新增|
+captive|俘虏|n/adj|new|考研新增|
+expansion|扩张,膨胀;张开,伸展|n|new|考研新增|
+discourse|演说；谈话；话语；讲述,著述|n/v|new|考研新增|
+approval|批准，通过；赞成，同意|n|new|考研新增|
+parasite|寄生虫,食客|n|new|考研新增|
+closet|壁橱；把…关在小房间|n/v|new|考研新增|
+daytime|白天,日间|n|new|考研新增|
+marriage|结婚,婚姻；结婚仪式|n|new|考研新增|
+assignment|任务；作业|n|new|考研新增|
+centimetre|厘米|n|new|考研新增|
+mobilize|动员，调动|v|new|考研新增|
+fisherman|渔夫，捕鱼人|n|new|考研新增|
+capsule|胶囊；太空舱|n|new|考研新增|
+director|导演；指导者,主任|n|new|考研新增|
+synthesis|综合，合成|n|new|考研新增|
+conspicuous|显眼的,明显的|adj|new|考研新增|
+tempo|(音乐的)速度；节奏,行进速度|n|new|考研新增|
+insulate|使绝缘,使绝热；隔离,孤立|v|new|考研新增|
+contemplate|考虑；深思；细想；注视，凝视|v|new|考研新增|
+advisable|可取的，适当的，明智的|adj|new|考研新增|
+temperament|气质，性格，性情|n|new|考研新增|
+discovery|被发现的事物|n|new|考研新增|
+congratulation|祝贺|n|new|考研新增|
+dividend|红利，股息|n|new|考研新增|
+recipient|接受的,感受性强的；接受者|adj/n|new|考研新增|
+cognitive|认知的，认识能力的|adj|new|考研新增|
+barren|贫瘠的；不育的；(植物)不结果的|adj|new|考研新增|
+sane|心智健全的,神志清醒的；明智的|adj|new|考研新增|
+monotonous|单调的,无变化的|adj|new|考研新增|
+deduct|扣除|v|new|考研新增|
+temptation|引诱，诱惑；诱惑物|n|new|考研新增|
+simultaneous|同时的，同时发生的|adj|new|考研新增|
+subsidy|补助金；津贴费|n|new|考研新增|
+action|行动；行为；战斗|n|new|考研新增|
+increasingly|不断增加地,日益|adv|new|考研新增|
+evolution|进化,演变；发展,进展|n|new|考研新增|
+barn|谷仓,仓库|n|new|考研新增|
+prescription|药方,处方|n|new|考研新增|
+heroic|英雄的，英勇的，崇高的|adj|new|考研新增|
+verge|边,边缘；濒临|n/v|new|考研新增|
+marble|大理石,云石|n|new|考研新增|
+classification|分类,分级|n|new|考研新增|
+intelligible|可理解的，明白易懂的，清楚的|adj|new|考研新增|
+unexpected|想不到的, 意外的, 未预料到|adj|new|考研新增|
+discreet|(言行)谨慎的；慎重的|adj|new|考研新增|
+inverse|相反的,倒转的,反转的；相反之物|adj/n|new|考研新增|
+accidental|偶然的；意外的；无意中的|adj|new|考研新增|
+certainty|必然,肯定;必然的事|n|new|考研新增|
+spectrum|范围，幅度；光谱|n|new|考研新增|
+recollect|回忆,想起,记起,忆起,记得|v|new|考研新增|
+comparative|比较的,相比的|adj|new|考研新增|
+indignant|愤慨的,愤慨不平的|adj|new|考研新增|
+efficiency|效率；功效|n|new|考研新增|
+loyalty|忠诚|n|new|考研新增|
+negligible|可忽略不计的，微不足道的|adj|new|考研新增|
+specification|规格，说明书|n|new|考研新增|
+anonymous|匿名的，无名的，姓氏不明的|adj|new|考研新增|
+consecutive|连续的；连贯的；顺序的|adj|new|考研新增|
+directly|直接地,径直地；马上,立即|adv|new|考研新增|
+compensation|补偿费，赔偿金|n|new|考研新增|
+accountant|会计人员，会计师|n|new|考研新增|
+resolute|坚决的,果断的|adj|new|考研新增|
+sympathize|同情，共鸣|v|new|考研新增|
+generalize|归纳，概括；推广|v|new|考研新增|
+assistant|帮助的，辅助的；助手，助理，副手|adj/n|new|考研新增|
+assimilate|吸收，消化；被吸收；被同化|v|new|考研新增|
+dome|圆屋顶|n|new|考研新增|
+advent|(重要事件等的)到来，来临|n|new|考研新增|
+meditate|想,考虑；(尤指宗教上的)沉思,冥想|v|new|考研新增|
+prosecute|指控，公诉；起诉，告发；继续从事|v|new|考研新增|
+acrobat|特技演员，杂技演员|n|new|考研新增|
+exceedingly|极端地,非常|adv|new|考研新增|
+degenerate|衰退,堕落,蜕化；堕落的；堕落者|v/adj/n|new|考研新增|
+eligible|符合条件的；合适的|adj|new|考研新增|
+incur|招致,惹起,遭受|v|new|考研新增|
+malignant|恶性的，致命的；恶意的，恶毒的|adj|new|考研新增|
+fragrant|香的;芬芳的|adj|new|考研新增|
+assembly|议会；集合；装配|n|new|考研新增|
+disperse|分散；驱散；（使）〔某物〕消散|v|new|考研新增|
+suffice|充足，足够|v|new|考研新增|
+eloquent|雄辩的，有说服力的|adj|new|考研新增|
+shepherd|牧民,牧羊人|n|new|考研新增|
+inject|注射(药液等)；注入|v|new|考研新增|
+metric|米制的,公制的|adj|new|考研新增|
+metaphor|隐喻，暗喻|n|new|考研新增|
+memo|备忘录|n|new|考研新增|
+refusal|拒绝,回绝|n|new|考研新增|
+artistic|艺术的，有艺术感的|adj|new|考研新增|
+console|控制台，仪表板；安慰，慰问|n/v|new|考研新增|
+tempt|诱惑，引诱，诱使|v|new|考研新增|
+concise|简明的,简洁的|adj|new|考研新增|
+hypothesis|假说，假设；前提|n|academic|考研补差 · 搭配：null hypothesis 零假设；test a hypothesis 验证假设|null hypothesis
+paradigm|范式；范例，样式|n|academic|考研补差 · 搭配：paradigm shift 范式转换；a new paradigm 新范式|paradigm shift
+empirical|经验主义的；以观察为依据的|adj|academic|考研补差 · 搭配：empirical evidence 实证证据；empirical study 实证研究|empirical evidence
+methodology|方法论，方法学|n|academic|考研补差 · 搭配：research methodology 研究方法；scientific methodology 科学方法|research methodology
+qualitative|定性的，性质的|adj|academic|考研补差 · 搭配：qualitative analysis 定性分析；qualitative research|qualitative analysis
+quantitative|定量的，数量的|adj|academic|考研补差 · 搭配：quantitative data 定量数据；quantitative analysis 定量分析|quantitative data
+correlate|使相关联；相关事物|v/n|academic|考研补差 · 搭配：correlate with 与…相关；correlation coefficient 相关系数|correlate with
+validity|有效性，正确性|n|academic|考研补差 · 搭配：validity of the argument 论证的有效性|validity of the argument
+parameter|参数；规范，界限|n|academic|考研补差 · 搭配：key parameter 关键参数；within parameters 在范围内|key parameter
+aggregate|合计；总计的；集合体|v/adj/n|academic|考研补差 · 搭配：in the aggregate 总体而言；aggregate demand 总需求|in the aggregate
+component|组成部分；构成的|n/adj|academic|考研补差 · 搭配：key component 关键组成部分；component parts 零部件|key component
+derive|得到，源于|v|academic|考研补差 · 搭配：derive from 来源于；derive benefit 获益|derive from
+facilitate|促进，使便利|v|academic|考研补差 · 搭配：facilitate communication 促进沟通；facilitate learning|facilitate communication
+inherent|固有的，内在的|adj|academic|考研补差 · 搭配：inherent in 内在于；inherent risk 固有风险|inherent in
+manifest|显现；明显的|v/adj|academic|考研补差 · 搭配：manifest itself 显现出来；manifest difference 明显差异|manifest itself
+perspective|视角，观点；透视|n|academic|考研补差 · 搭配：from a … perspective 从…角度看；in perspective 正确地|
+profound|深刻的，深远的|adj|academic|考研补差 · 搭配：profound impact 深远影响；profound change 深刻变革|profound impact
+robust|强健的，稳健的|adj|academic|考研补差 · 搭配：robust economy 稳健的经济；robust system 健壮系统|robust economy
+subsequent|随后的，后来的|adj|academic|考研补差 · 搭配：subsequent to 在…之后；subsequent events 后续事件|subsequent to
+thereby|由此，从而|adv|academic|考研补差 · 搭配：thereby doing 从而…；thereby reducing costs|thereby doing
+whereas|鉴于；然而，反之|conj|academic|考研补差 · 搭配：whereas clause 鉴于条款；表对比|whereas clause
+constitute|构成，组成；被视为|v|academic|考研补差 · 搭配：constitute a threat 构成威胁；constitute 10% 占10%|constitute a threat
+comply|遵守，服从|v|academic|考研补差 · 搭配：comply with 遵守；comply with regulations 遵守规定|comply with
+deduce|推论，推断|v|academic|考研补差 · 搭配：deduce from 由…推论；deduce a conclusion 得出结论|deduce from
+variable|变量；可变的|n/adj|sense|四级义：仅作adj.易变 · 搭配：independent variable 自变量；dependent variable 因变量|independent variable
+attribute|把…归因于；属性|v/n|sense|四级义：仅作n. · 搭配：attribute A to B 把A归因于B；personal attributes 个人特质|attribute A to B
+notion|概念，想法；见解|n|sense|四级义：仅表'概念' · 搭配：a false notion 错误观念；common notion 常识|a false notion
+sustain|维持；遭受；支撑|v|sense|四级义：仅'支撑' · 搭配：sustain growth 维持增长；sustain damage 遭受损失|sustain growth
+generate|产生，生成|v|sense|四级义：仅'生成' · 搭配：generate income 产生收入；generate interest 引起兴趣|generate income
+impose|强加；征税|v|sense|四级义：仅'强加' · 搭配：impose on 强加于；impose restrictions 施加限制|impose on
+propose|提议；打算；求婚|v|sense|四级义：仅'提议' · 搭配：propose a plan 提出方案；propose to do 打算做|propose a plan
+revise|修订，修改；复习|v|sense|四级义：仅'复习'(英) · 搭配：revise a plan 修订计划；revised edition 修订版|revise a plan
+yield|产生；屈服；产量|v/n|sense|四级义：仅'屈服/产量' · 搭配：yield results 产生结果；yield to 屈服于|yield results
+access|使用权；获取|n/v|sense|四级义：仅作n.通道 · 搭配：have access to 可使用；access information 获取信息|have access to
+pursue|追求；从事；追赶|v|sense|四级义：仅'追赶' · 搭配：pursue a goal 追求目标；pursue a career|pursue a goal
+sensitive|敏感的；易感的|adj|sense|四级义：仅'敏感' · 搭配：sensitive to 对…敏感；sensitive issue 敏感问题|sensitive to
+stable|稳定的；马厩|adj/n|sense|四级义：仅'稳定' · 搭配：stable economy 稳定的经济；politically stable|stable economy
+submit|提交；屈服；主张|v|sense|四级义：仅'提交/屈服' · 搭配：submit to 屈服于；submit a report 提交报告|submit to
+subscribe|订阅；赞同|v|sense|四级义：仅'订阅' · 搭配：subscribe to 订阅；赞同（观点）|subscribe to
+survey|调查；测量；审视|n/v|sense|四级义：仅'调查' · 搭配：conduct a survey 开展调查；a comprehensive survey|conduct a survey
+uniform|一致的；制服|adj/n|sense|四级义：仅'制服' · 搭配：uniform standard 统一标准；keep uniform|uniform standard
+address|处理，对付（议题）|v|sense|四级义：地址 · 搭配：address a problem 处理问题；address the issue|address a problem
+advance|提出（观点）；预付；进展|v/n|sense|四级义：前进，推进 · 搭配：advance a theory 提出理论；in advance 提前|advance a theory
+appropriate|占用，挪用；适当的|v/adj|sense|四级义：适当的 · 搭配：appropriate funds 挪用资金；appropriate action|appropriate funds
+article|条款，物品；文章|n|sense|四级义：文章 · 搭配：Article 5 第五条；an article of clothing 一件衣服|Article 5
+attend|照料，侍候；出席|v|sense|四级义：参加 · 搭配：attend to 照料；attend a patient 看护病人|attend to
+balance|结余，余额；天平；平衡|n|sense|四级义：平衡 · 搭配：bank balance 银行余额；balance sheet 资产负债表|bank balance
+bear|承受；生育；带有；结果实|v|sense|四级义：熊 · 搭配：bear in mind 记住；bear fruit 结出果实|bear in mind
+bill|议案，钞票；账单|n|sense|四级义：账单 · 搭配：a bill in Parliament 议会法案；dollar bill|a bill in Parliament
+book|预订；登记|v|sense|四级义：书 · 搭配：book a ticket 订票；book a room 订房|book a ticket
+capital|资本，资金；首都；大写|n|sense|四级义：首都 · 搭配：human capital 人力资本；working capital 营运资金|human capital
+catch|理解，听清；抓住|v|sense|四级义：抓住 · 搭配：catch my meaning 明白我的意思；catch on 流行|catch my meaning
+celebrate|赞美，歌颂；庆祝|v|sense|四级义：庆祝 · 搭配：celebrate the virtues 赞美美德；celebrate a victory|celebrate the virtues
+champion|拥护者；捍卫；冠军|n/v|sense|四级义：冠军 · 搭配：a champion of freedom 自由的捍卫者；champion a cause|a champion of freedom
+character|特征，字符；性格；人物|n|sense|四级义：性格，角色 · 搭配：in character 符合个性；Chinese character 汉字|in character
+combine|兼备，兼具；联合|v|sense|四级义：结合 · 搭配：combine work and pleasure 劳逸结合；combined with|combine work and pleasure
+company|陪伴；同伴；公司|n|sense|四级义：公司 · 搭配：in the company of 在…陪伴下；keep sb company|in the company of
+compromise|损害，危及；妥协|v/n|sense|四级义：妥协 · 搭配：compromise one's health 损害健康；compromise the deal|compromise one's health
+concert|协同，一致；音乐会|n|sense|四级义：音乐会 · 搭配：in concert 一致地；act in concert 协同行动|in concert
+conduct|实施，引导；行为；导电|v/n|sense|四级义：指挥；行为 · 搭配：conduct a survey 开展调查；conduct research|conduct a survey
+consume|消耗；吃光；使着迷|v|sense|四级义：消费 · 搭配：consume energy 消耗能量；be consumed with 被…吞噬|consume energy
+content|含量，目录；满足的|n/adj|sense|四级义：内容 · 搭配：water content 含水量；be content with 满足于|water content
+contend|主张，认为；竞争|v|sense|四级义：竞争 · 搭配：it is contended that 有人认为；contend with 应对|it is contended that
+course|航向，进程；课程；一道菜|n|sense|四级义：课程 · 搭配：in the course of 在…期间；of course 当然|in the course of
+cover|报道；足以支付；覆盖|v|sense|四级义：覆盖 · 搭配：cover the event 报道事件；cover the cost 支付费用|cover the event
+credit|学分；归功于；信用|n/v|sense|四级义：信用，赊账 · 搭配：give credit to 把…归功于；course credit 学分|give credit to
+critical|关键的；批评的；危急的|adj|sense|四级义：批评的 · 搭配：critical factor 关键因素；critical moment 关键时刻|critical factor
+culture|培养（细菌）；文化|n|sense|四级义：文化 · 搭配：culture bacteria 培养细菌；cell culture 细胞培养|culture bacteria
+date|追溯到；约会；标注日期|v|sense|四级义：日期，约会 · 搭配：date back to 追溯到；out of date 过时|date back to
+dear|昂贵的；亲爱的|adj|sense|四级义：亲爱的 · 搭配：at a dear price 高价；hold sth dear 珍视|at a dear price
+defend|为…辩护；防御|v|sense|四级义：防守 · 搭配：defend a theory 为理论辩护；defend oneself|defend a theory
+deliver|发表（演讲）；交付；接生|v|sense|四级义：递送 · 搭配：deliver a speech 发表演讲；deliver on a promise 兑现承诺|deliver a speech
+desert|抛弃，离弃；沙漠|v/n|sense|四级义：沙漠 · 搭配：desert one's post 擅离职守；desert a friend|desert one's post
+develop|显现，得（病）；开发；冲洗|v|sense|四级义：发展 · 搭配：develop a disease 患病；develop photos 冲洗照片|develop a disease
+dismiss|不予考虑；解雇；驳回|v|sense|四级义：解雇 · 搭配：dismiss an idea 不予理会；dismiss the case 驳回案件|dismiss an idea
+discipline|学科；纪律；训练|n/v|sense|四级义：纪律 · 搭配：academic discipline 学科；self-discipline 自律|academic discipline
+dramatic|显著的，戏剧性的|adj|sense|四级义：戏剧的 · 搭配：dramatic change 显著变化；dramatic increase|dramatic change
+draw|得出（结论）；吸引；画|v|sense|四级义：画；拉 · 搭配：draw a conclusion 得出结论；draw attention 吸引注意|draw a conclusion
+dress|处理，包扎；穿衣|v|sense|四级义：穿衣 · 搭配：dress a wound 包扎伤口；dress up 打扮|dress a wound
+dull|钝的；迟钝的；沉闷的|adj|sense|四级义：枯燥的 · 搭配：a dull knife 钝刀；dull pain 隐痛|a dull knife
+economy|节约，节省；经济|n|sense|四级义：经济 · 搭配：economy of effort 省力；false economy 假节约|economy of effort
+embrace|欣然接受；拥抱|v|sense|四级义：拥抱 · 搭配：embrace the idea 接受这一想法；embrace change|embrace the idea
+employ|使用，利用；雇用|v|sense|四级义：雇佣 · 搭配：employ a method 采用方法；employ a word 用词|employ a method
+end|目的，目标；末端|n|sense|四级义：末尾 · 搭配：to this end 为此目的；means to an end 达到目的的手段|to this end
+`;
+
+const PHRASE_RAW = `
+null hypothesis|零假设
+test a hypothesis|验证假设
+paradigm shift|范式转换
+a new paradigm|新范式
+empirical evidence|实证证据
+empirical study|实证研究
+research methodology|研究方法
+scientific methodology|科学方法
+qualitative analysis|定性分析
+quantitative data|定量数据
+quantitative analysis|定量分析
+correlate with|与…相关
+correlation coefficient|相关系数
+independent variable|自变量
+dependent variable|因变量
+validity of the argument|论证的有效性
+key parameter|关键参数
+within parameters|在范围内
+in the aggregate|总体而言
+aggregate demand|总需求
+attribute A to B|把A归因于B
+personal attributes|个人特质
+key component|关键组成部分
+component parts|零部件
+derive from|来源于
+derive benefit|获益
+facilitate communication|促进沟通
+inherent in|内在于
+inherent risk|固有风险
+manifest itself|显现出来
+manifest difference|明显差异
+a false notion|错误观念
+common notion|常识
+from a … perspective|从…角度看
+in perspective|正确地
+profound impact|深远影响
+profound change|深刻变革
+robust economy|稳健的经济
+robust system|健壮系统
+subsequent to|在…之后
+subsequent events|后续事件
+sustain growth|维持增长
+sustain damage|遭受损失
+thereby doing|从而…
+whereas clause|鉴于条款
+constitute a threat|构成威胁
+constitute 10%|占10%
+comply with|遵守
+comply with regulations|遵守规定
+deduce from|由…推论
+deduce a conclusion|得出结论
+elicit a response|引起反应
+elicit information|套取信息
+embody the spirit|体现精神
+be endowed with|被赋予
+endow a chair|资助讲席
+exert influence on|对…施加影响
+exert oneself|努力
+foster creativity|培养创造力
+generate income|产生收入
+generate interest|引起兴趣
+hamper progress|妨碍进展
+hamper efforts|阻碍努力
+impose on|强加于
+impose restrictions|施加限制
+inhibit growth|抑制增长
+integrate into|融入
+justify oneself|证明自己正确
+mediate between|在…间调解
+merge with|与…合并
+motivate sb to do|激励某人做
+negate the effect|抵消作用
+`;
+
+function parseData(raw){
+  const out = [];
+  const seen = new Set();
+  raw.split('\n').forEach(line => {
+    line = line.trim();
+    const parts = line.split('|');
+    if(parts.length < 2) return;
+    const en = parts[0].trim();
+    const zh = parts[1].trim();
+    const pos = (parts[2] || '').trim();
+    const type = (parts[3] || '').trim();
+    const note = (parts[4] || '').trim();
+    const say = (parts[5] || '').trim();
+    if(!en || !zh) return;
+    const k = en.toLowerCase();
+    if(seen.has(k)) return;
+    seen.add(k);
+    out.push({ en, zh, pos, type, example: note, say });
+  });
+  return out;
+}
+
+const WORDS = parseData(WORD_RAW);
+const PHRASES = parseData(PHRASE_RAW);
+
+/* ================= 常量与状态 ================= */
+const $ = id => document.getElementById(id);
+const leftCol = $('left'), rightCol = $('right'), svg = $('lines');
+const ERR_KEY = 'kaoyan_demo_english_match_errors_v1';
+const PREF_KEY = 'kaoyan_demo_english_match_prefs_v1';
+
+const HINTS = {
+  word: '把考研词汇和它的中文意思配对。点英文卡片可以听发音；标「僻义」的是熟词僻义，标「补差」的是四级少见的学术词。',
+  phrase: '把考研高频搭配和它的中文意思配对。',
+  review: '错词复习：配对正确，这个词就会从错词本里移除。'
+};
+
+const POS_LABEL = {
+  n: 'n. 名词',
+  v: 'v. 动词',
+  adj: 'adj. 形容词',
+  adv: 'adv. 副词',
+  pron: 'pron. 代词',
+  prep: 'prep. 介词',
+  conj: 'conj. 连词',
+  art: 'art. 冠词',
+  num: 'num. 数词',
+  int: 'int. 感叹词',
+  modal: 'modal v. 情态动词'
+};
+
+function posText(pos){
+  if(!pos) return '';
+  if(pos.includes('/')) return pos.split('/').map(p => (POS_LABEL[p] || p).split(' ')[0]).join('/');
+  return POS_LABEL[pos] || pos;
+}
+
+let mode = 'word';
+let pairs = [];
+let matched = 0, score = 0, combo = 0, hits = 0, misses = 0;
+let roundNo = 1, completedRounds = 0;
+let sel = null, lock = false, gen = 0;
+const recent = { word: [], phrase: [] };
+
+let ttsOn = true, sfxOn = true;
+
+/* ================= 小工具 ================= */
+function esc(s){
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+function shuffle(a){
+  a = a.slice();
+  for(let i = a.length - 1; i > 0; i--){
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+/* ================= 偏好设置 ================= */
+(function loadPrefs(){
+  try{
+    const p = JSON.parse(localStorage.getItem(PREF_KEY) || '{}');
+    if(p.tts === false) ttsOn = false;
+    if(p.sfx === false) sfxOn = false;
+  }catch(e){}
+})();
+function savePrefs(){
+  try{ localStorage.setItem(PREF_KEY, JSON.stringify({ tts: ttsOn, sfx: sfxOn })); }catch(e){}
+}
+
+/* ================= 错词本 ================= */
+let errors = [];
+try{
+  const raw = JSON.parse(localStorage.getItem(ERR_KEY) || '[]');
+  errors = Array.isArray(raw) ? raw : [];
+}catch(e){ errors = []; }
+
+function saveErrors(){
+  try{ localStorage.setItem(ERR_KEY, JSON.stringify(errors)); }catch(e){}
+}
+function addError(en, zh, wrong, pos, example, say, type){
+  if(!en || !zh) return;
+  const hit = errors.find(x => String(x.en).toLowerCase() === String(en).toLowerCase());
+  if(hit){
+    hit.n = (hit.n || 1) + 1;
+    hit.wrong = wrong || '';
+    hit.zh = zh;
+    if(pos) hit.pos = pos;
+    if(example) hit.example = example;
+    if(say) hit.say = say;
+    if(type) hit.type = type;
+    hit.ts = Date.now();
+  }else{
+    errors.push({ en, zh, wrong: wrong || '', pos: pos || '', example: example || '', say: say || '', type: type || '', n: 1, ts: Date.now() });
+  }
+  errors.sort((a, b) => (b.n || 1) - (a.n || 1) || (b.ts || 0) - (a.ts || 0));
+  if(errors.length > 300) errors.length = 300;
+  saveErrors();
+  updateBookBadge();
+}
+function removeError(en){
+  const key = String(en).toLowerCase();
+  errors = errors.filter(x => String(x.en).toLowerCase() !== key);
+  saveErrors();
+  updateBookBadge();
+}
+function updateBookBadge(){
+  $('bookCount').textContent = errors.length;
+  $('bookBtn').classList.toggle('has-err', errors.length > 0);
+}
+
+/* ================= 发音（TTS） ================= */
+let voices = [];
+function refreshVoices(){
+  try{
+    voices = ('speechSynthesis' in window) ? window.speechSynthesis.getVoices() : [];
+  }catch(e){ voices = []; }
+}
+if('speechSynthesis' in window){
+  refreshVoices();
+  try{ window.speechSynthesis.addEventListener('voiceschanged', refreshVoices); }catch(e){}
+}
+const PREFERRED_VOICE = /samantha|alex|aria|zira|google us english|google uk english female|karen|daniel/i;
+
+function speak(text){
+  if(!ttsOn || !text) return;
+  if(!('speechSynthesis' in window)) return;
+  try{
+    const synth = window.speechSynthesis;
+    if(synth.speaking || synth.pending) synth.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.9;
+    u.pitch = 1;
+    u.volume = 1;
+    if(!voices.length) refreshVoices();
+    const v = voices.find(x => /^en[-_]US/i.test(x.lang) && PREFERRED_VOICE.test(x.name))
+      || voices.find(x => /^en[-_]US/i.test(x.lang))
+      || voices.find(x => /^en/i.test(x.lang));
+    if(v) u.voice = v;
+    synth.speak(u);
+  }catch(e){}
+}
+
+/* ================= 音效 ================= */
+let ac = null;
+function tone(freq, dur, type, vol){
+  if(!sfxOn) return;
+  try{
+    if(!ac) ac = new (window.AudioContext || window.webkitAudioContext)();
+    if(ac.state === 'suspended') ac.resume();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type || 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(vol || .05, ac.currentTime);
+    g.gain.exponentialRampToValueAtTime(.0001, ac.currentTime + dur);
+    o.connect(g);
+    g.connect(ac.destination);
+    o.start();
+    o.stop(ac.currentTime + dur);
+  }catch(e){}
+}
+function ding(c){ tone(1320 + Math.min(c, 8) * 35, .16, 'sine', .05); }
+function buzz(){ tone(150, .12, 'sawtooth', .045); }
+
+/* ================= 抽词 ================= */
+function sampleFrom(pool, n, scope){
+  const r = recent[scope];
+  let cand = pool.filter(p => r.indexOf(p.en) === -1);
+  if(cand.length < n * 4){ r.length = 0; cand = pool.slice(); }
+
+  const picked = [], usedEn = new Set(), usedZh = new Set();
+  let guard = 0;
+  while(picked.length < n && guard++ < 3000){
+    const p = cand[Math.floor(Math.random() * cand.length)];
+    if(!p) break;
+    if(usedEn.has(p.en) || usedZh.has(p.zh)) continue;
+    usedEn.add(p.en);
+    usedZh.add(p.zh);
+    picked.push(p);
+    r.push(p.en);
+    if(r.length > 80) r.shift();
+  }
+  return picked;
+}
+
+/* ================= 渲染 ================= */
+function posOf(en){
+  const k = String(en).toLowerCase();
+  const w = WORDS.find(x => x.en.toLowerCase() === k);
+  return w ? (w.pos || '') : '';
+}
+
+function exampleOf(en){
+  const k = String(en).toLowerCase();
+  const w = WORDS.find(x => x.en.toLowerCase() === k);
+  return w ? (w.example || '') : '';
+}
+
+function sayOf(en){
+  const k = String(en).toLowerCase();
+  const w = WORDS.find(x => x.en.toLowerCase() === k);
+  return w ? (w.say || '') : '';
+}
+
+function typeOf(en){
+  const k = String(en).toLowerCase();
+  const w = WORDS.find(x => x.en.toLowerCase() === k);
+  return w ? (w.type || '') : '';
+}
+
+function makeTile(p, idx, side){
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'tile ' + (side === 'left' ? 'en' : 'zh');
+  b.dataset.idx = idx;
+  b.dataset.side = side;
+  b.dataset.lang = side === 'left' ? 'en' : 'zh';
+  b.dataset.en = p.en;
+  b.dataset.zh = p.zh;
+  b.dataset.pos = p.pos || '';
+  b.dataset.example = p.example || '';
+  b.dataset.say = p.say || '';
+  b.dataset.type = p.type || '';
+
+  if(side === 'left'){
+    const row = document.createElement('span');
+    row.className = 'word-row';
+    const word = document.createElement('span');
+    word.className = 'word';
+    word.textContent = p.en;
+    row.appendChild(word);
+    if(p.type === 'sense' || p.type === 'academic'){
+      const newTag = document.createElement('span');
+      newTag.className = 'new' + (p.type === 'academic' ? ' academic' : '');
+      newTag.textContent = p.type === 'sense' ? '僻义' : '补差';
+      row.appendChild(newTag);
+    }
+    b.appendChild(row);
+    if(p.pos){
+      const tag = document.createElement('span');
+      tag.className = 'pos';
+      tag.textContent = posText(p.pos);
+      b.appendChild(tag);
+    }
+  }else{
+    b.textContent = p.zh;
+  }
+
+  b.addEventListener('click', () => onTile(b));
+  return b;
+}
+
+function buildRound(){
+  gen++;
+  hideToast();
+
+  if(mode === 'review'){
+    pairs = errors.slice(0, 6).map(e => ({ en: e.en, zh: e.zh, pos: e.pos || posOf(e.en), example: e.example || exampleOf(e.en), say: e.say || sayOf(e.en), type: e.type || typeOf(e.en) }));
+    if(pairs.length < 2){
+      enterMode('word', false);
+      flash('错词本里的词还不够，先玩几组吧');
+      return;
+    }
+  }else if(mode === 'phrase'){
+    pairs = sampleFrom(PHRASES, 6, 'phrase');
+  }else{
+    pairs = sampleFrom(WORDS, 6, 'word');
+  }
+
+  pairs = pairs.map((p, i) => ({ en: p.en, zh: p.zh, pos: p.pos || '', example: p.example || '', say: p.say || '', type: p.type || '', idx: i }));
+
+  matched = 0;
+  sel = null;
+  lock = false;
+  leftCol.innerHTML = '';
+  rightCol.innerHTML = '';
+  svg.innerHTML = '';
+
+  const left = shuffle(pairs.map((p, i) => ({ p, i })));
+  const right = shuffle(pairs.map((p, i) => ({ p, i })));
+
+  left.forEach(x => leftCol.appendChild(makeTile(x.p, x.i, 'left')));
+  right.forEach(x => rightCol.appendChild(makeTile(x.p, x.i, 'right')));
+
+  $('matched').textContent = 0;
+  $('total').textContent = pairs.length;
+  $('round').textContent = roundNo;
+}
+
+function updateStats(){
+  $('score').textContent = score;
+  $('combo').textContent = combo;
+  $('matched').textContent = matched;
+  const total = hits + misses;
+  $('acc').textContent = total ? Math.round(hits * 100 / total) + '%' : '—';
+}
+
+/* ================= 交互 ================= */
+function select(el){
+  sel = el;
+  el.classList.add('sel');
+  if(el.dataset.lang === 'en') speak(el.dataset.en);
+}
+function deselect(){
+  if(sel) sel.classList.remove('sel');
+  sel = null;
+}
+
+function onTile(el){
+  if(lock || el.classList.contains('gone')) return;
+  if(!sel){ select(el); return; }
+  if(sel === el){ deselect(); return; }
+  if(sel.dataset.side === el.dataset.side){ deselect(); select(el); return; }
+  if(sel.dataset.idx === el.dataset.idx) match(sel, el);
+  else wrong(sel, el);
+}
+
+function match(a, b){
+  lock = true;
+  const myGen = gen;
+
+  a.classList.add('ok');
+  b.classList.add('ok');
+  drawLine(a, b);
+
+  score += 10 + Math.min(combo, 8) * 2;
+  combo++;
+  hits++;
+  matched++;
+  updateStats();
+  ding(combo);
+
+  if(mode === 'review') removeError(a.dataset.en);
+  showExample(a.dataset.en, a.dataset.zh, a.dataset.example, a.dataset.say, a.dataset.type);
+
+  setTimeout(() => {
+    if(myGen !== gen) return;
+    a.classList.add('gone');
+    b.classList.add('gone');
+    a.classList.remove('ok', 'sel');
+    b.classList.remove('ok', 'sel');
+    svg.innerHTML = '';
+    lock = false;
+    deselect();
+
+    if(matched === pairs.length){
+      roundNo++;
+      completedRounds++;
+      const milestone = completedRounds % 5 === 0;
+      showToast(milestone ? '完成 ' + completedRounds + ' 组 · 得分 ' + score : '本组完成！');
+      setTimeout(() => {
+        if(myGen !== gen) return;
+        hideToast();
+        if(mode === 'review' && errors.length < 2){
+          enterMode('word', false);
+          flash('错词复习完成');
+        }else{
+          buildRound();
+        }
+      }, milestone ? 1100 : 800);
+    }
+  }, 420);
+}
+
+function wrong(a, b){
+  lock = true;
+  const myGen = gen;
+
+  a.classList.add('bad');
+  b.classList.add('bad');
+  misses++;
+  combo = 0;
+  updateStats();
+  buzz();
+
+  const enEl = a.dataset.lang === 'en' ? a : b;
+  const zhEl = enEl === a ? b : a;
+  addError(enEl.dataset.en, enEl.dataset.zh, zhEl.textContent, enEl.dataset.pos, enEl.dataset.example, enEl.dataset.say, enEl.dataset.type);
+
+  setTimeout(() => {
+    if(myGen !== gen) return;
+    a.classList.remove('bad', 'sel');
+    b.classList.remove('bad', 'sel');
+    lock = false;
+    deselect();
+  }, 380);
+}
+
+function drawLine(a, b){
+  const board = $('board').getBoundingClientRect();
+  const ar = a.getBoundingClientRect();
+  const br = b.getBoundingClientRect();
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+  const ax = ar.right - board.left, ay = ar.top + ar.height / 2 - board.top;
+  const bx = br.left - board.left, by = br.top + br.height / 2 - board.top;
+  line.setAttribute('x1', Math.min(ax, bx));
+  line.setAttribute('y1', ay);
+  line.setAttribute('x2', Math.max(ax, bx));
+  line.setAttribute('y2', by);
+  line.setAttribute('stroke', '#2E8B57');
+  line.setAttribute('stroke-width', '3');
+  line.setAttribute('stroke-linecap', 'round');
+  line.setAttribute('opacity', '0.8');
+  svg.appendChild(line);
+  line.animate([{ opacity: 0 }, { opacity: .8 }], { duration: 160 });
+}
+
+/* ================= 提示 ================= */
+let toastTimer = 0;
+function showToast(text){
+  const d = $('done');
+  d.textContent = text;
+  d.classList.add('show');
+  clearTimeout(toastTimer);
+}
+function hideToast(){
+  $('done').classList.remove('show');
+}
+function flash(text){
+  showToast(text);
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(hideToast, 1800);
+}
+
+/* ================= 词汇提示 ================= */
+function resetExample(){
+  const word = $('exWord'), text = $('exText'), say = $('exSay');
+  if(!word) return;
+  word.textContent = mode === 'phrase' ? '搭配模式暂不显示提示' : '配对成功后会显示词汇提示';
+  word.classList.add('empty');
+  text.textContent = '';
+  say.hidden = true;
+  say.dataset.say = '';
+}
+function showExample(en, zh, example, sayText, type){
+  const word = $('exWord'), text = $('exText'), say = $('exSay');
+  if(!example){
+    resetExample();
+    return;
+  }
+  word.textContent = en + (zh ? ' · ' + zh : '') + (type === 'sense' ? ' · 僻义' : type === 'academic' ? ' · 补差' : '');
+  word.classList.remove('empty');
+  text.textContent = example;
+  say.dataset.say = sayText || '';
+  say.hidden = !sayText;
+}
+
+/* ================= 模式 ================= */
+function syncModeUI(){
+  document.querySelectorAll('.mode').forEach(b => {
+    b.classList.toggle('on', b.dataset.mode === mode);
+  });
+  document.body.dataset.mode = mode;
+  $('hint').textContent = HINTS[mode] || HINTS.word;
+  const ex = $('example');
+  if(ex) ex.style.display = (mode === 'phrase') ? 'none' : 'flex';
+  if(mode !== 'phrase') resetExample();
+}
+
+function enterMode(m, resetStats){
+  mode = m;
+  syncModeUI();
+  if(resetStats){
+    score = 0; combo = 0; hits = 0; misses = 0;
+    roundNo = 1; completedRounds = 0;
+    updateStats();
+  }
+  buildRound();
+}
+
+/* ================= 错词本界面 ================= */
+function renderBook(){
+  const el = $('errList');
+  if(!errors.length){
+    el.innerHTML = '<div class="empty">还没有错词。<br>配对出错时，会记在这里。</div>';
+  }else{
+    el.innerHTML = errors.map(e => {
+      const wrong = e.wrong ? ' · 曾误选：' + esc(e.wrong) : '';
+      const pos = e.pos || posOf(e.en);
+      const example = e.example || exampleOf(e.en);
+      const newTag = e.type === 'sense' ? '<span class="new">僻义</span>' : e.type === 'academic' ? '<span class="new academic">补差</span>' : '';
+      return '<div class="err-row">' +
+        '<button class="say" data-en="' + esc(e.en) + '" title="发音">🔊</button>' +
+        '<div class="who">' +
+          '<div class="err-head"><b>' + esc(e.en) + '</b>' +
+            newTag +
+            (pos ? '<span class="pos">' + esc(posText(pos)) + '</span>' : '') +
+          '</div>' +
+          '<small>' + esc(e.zh) + wrong + (example ? '<span class="ex">' + esc(example) + '</span>' : '') + '</small>' +
+        '</div>' +
+        '<span class="times">×' + (e.n || 1) + '</span>' +
+        '<button class="rm" data-en="' + esc(e.en) + '" title="已掌握，移除">✓</button>' +
+      '</div>';
+    }).join('');
+  }
+  const canReview = errors.length >= 2;
+  $('reviewBtn').disabled = !canReview;
+  $('reviewBtn').textContent = canReview ? '复习这些词' : '至少需要 2 个错词';
+  $('bookSub').textContent = errors.length
+    ? '配对出错时会自动记在这里。复习时配对正确，这个词就会移除。'
+    : '配对出错时会自动记在这里。';
+  $('overlay').classList.add('show');
+}
+function closeBook(){
+  $('overlay').classList.remove('show');
+}
+
+/* ================= 偏好按钮 ================= */
+function syncPrefs(){
+  $('ttsToggle').textContent = ttsOn ? '🔊 发音开' : '🔇 发音关';
+  $('ttsToggle').classList.toggle('on', ttsOn);
+  $('sfxToggle').textContent = sfxOn ? '🎵 音效开' : '🔕 音效关';
+  $('sfxToggle').classList.toggle('on', sfxOn);
+}
+
+/* ================= 事件 ================= */
+document.querySelectorAll('.mode').forEach(b => {
+  b.addEventListener('click', () => enterMode(b.dataset.mode, true));
+});
+
+$('restart').addEventListener('click', () => enterMode(mode, true));
+$('bookBtn').addEventListener('click', renderBook);
+$('exSay').addEventListener('click', () => {
+  const t = $('exSay').dataset.say || $('exText').textContent.trim();
+  if(t) speak(t);
+});
+$('closeBook').addEventListener('click', closeBook);
+$('overlay').addEventListener('click', e => { if(e.target === $('overlay')) closeBook(); });
+
+$('errList').addEventListener('click', e => {
+  const say = e.target.closest('.say');
+  const rm = e.target.closest('.rm');
+  if(say){ speak(say.dataset.en); return; }
+  if(rm){ removeError(rm.dataset.en); renderBook(); }
+});
+
+$('clearBook').addEventListener('click', () => {
+  if(!errors.length) return;
+  if(confirm('清空整个错词本？')){
+    errors = [];
+    saveErrors();
+    updateBookBadge();
+    renderBook();
+  }
+});
+
+$('reviewBtn').addEventListener('click', () => {
+  if(errors.length < 2) return;
+  closeBook();
+  enterMode('review', true);
+});
+
+$('ttsToggle').addEventListener('click', () => {
+  ttsOn = !ttsOn;
+  if(!ttsOn && 'speechSynthesis' in window){
+    try{ window.speechSynthesis.cancel(); }catch(e){}
+  }
+  savePrefs();
+  syncPrefs();
+});
+
+$('sfxToggle').addEventListener('click', () => {
+  sfxOn = !sfxOn;
+  savePrefs();
+  syncPrefs();
+  if(sfxOn) ding(1);
+});
+
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && $('overlay').classList.contains('show')) closeBook();
+});
+window.addEventListener('resize', () => { svg.innerHTML = ''; });
+
+/* ================= 启动 ================= */
+$('wordCount').textContent = WORDS.length;
+$('phraseCount').textContent = PHRASES.length;
+updateBookBadge();
+syncPrefs();
+const startMode = new URLSearchParams(location.search).get('mode') === 'phrase' ? 'phrase' : 'word';
+enterMode(startMode, true);
+</script>
+<script>
+(function(){
+'use strict';
+
+const DATA = {"name":"focusgarden 日历标注","version":"1.0","updated":"2026-11-04","source":"惜时.html / happy-tomato.html / quarterbloom.html","rank":{"fest":0,"term":1,"birth":2,"mem":3,"warn":4},"types":{"fest":{"label":"节日","color":"#D64541","bg":"#FBE9E8","rank":0},"term":{"label":"节气","color":"#2F6B4F","bg":"#E7F1EA","rank":1},"birth":{"label":"诞辰·纪念","color":"#A4402F","bg":"#F7E6E2","rank":2},"mem":{"label":"逝世·牺牲","color":"#8A7355","bg":"#F0ECE3","rank":3},"warn":{"label":"警示·反思","color":"#A8762A","bg":"#F8EFDC","rank":4}},"solarTerms":["春分","清明","谷雨","立夏","小满","芒种","夏至","小暑","大暑","立秋","处暑","白露","秋分","寒露","霜降","立冬","小雪","大雪","冬至","小寒","大寒","立春","雨水","惊蛰"],"lunarEvents":[{"m":1,"d":1,"s":"春节","f":"春节","t":"fest"},{"m":1,"d":15,"s":"元宵","f":"元宵节","t":"fest"},{"m":3,"d":3,"s":"宜春游","f":"三月三 · 宜春游","t":"fest"},{"m":5,"d":5,"s":"端午","f":"端午节","t":"fest"},{"m":7,"d":7,"s":"宜乞巧","f":"七月七 · 宜乞巧","t":"fest"},{"m":7,"d":15,"s":"中元","f":"中元节","t":"fest"},{"m":8,"d":15,"s":"中秋","f":"中秋节","t":"fest"},{"m":9,"d":9,"s":"重阳","f":"重阳节","t":"fest"},{"m":10,"d":1,"s":"送寒衣","f":"十月初一 · 送寒衣","t":"fest"},{"m":12,"d":8,"s":"腊八","f":"腊八节","t":"fest"}],"solarEvents":[{"m":1,"d":1,"s":"元旦","f":"元旦","t":"fest"},{"m":1,"d":8,"s":"周恩来","f":"周恩来逝世纪念日（1976）","t":"mem"},{"m":1,"d":12,"s":"刘胡兰","f":"刘胡兰纪念日（1947 就义）","t":"mem","n":"“生的伟大，死的光荣”，年龄最小的女烈士"},{"m":1,"d":21,"s":"列宁","f":"列宁逝世纪念日（1924）","t":"mem"},{"m":1,"d":27,"s":"宋庆龄","f":"宋庆龄诞辰（1893）","t":"birth","n":"共和国名誉主席，“国之瑰宝”"},{"m":2,"d":4,"s":"邓颖超","f":"邓颖超诞辰（1904）","t":"birth"},{"m":2,"d":7,"s":"二七","f":"二七纪念日（1923）","t":"birth","n":"京汉铁路大罢工，中共早期工运起点"},{"m":2,"d":23,"s":"杨靖宇","f":"杨靖宇纪念日（1940 牺牲）","t":"mem","n":"东北抗联主要创建者"},{"m":3,"d":5,"s":"学雷锋","f":"学雷锋纪念日","t":"birth"},{"m":3,"d":5,"s":"周恩来","f":"周恩来诞辰（1898）","t":"birth"},{"m":3,"d":5,"s":"何泽慧","f":"何泽慧诞辰（1914）","t":"birth","n":"核物理学家，“中国居里夫人”，与钱三强共发现铀三分裂、四分裂"},{"m":3,"d":7,"s":"竺可桢","f":"竺可桢诞辰（1890）","t":"birth","n":"中国现代气象学、地理学奠基人"},{"m":3,"d":8,"s":"妇女节","f":"三八妇女节","t":"fest"},{"m":3,"d":13,"s":"赖宁","f":"赖宁纪念日（1988 救火牺牲）","t":"mem","n":"少年英雄，“英雄少年”"},{"m":3,"d":14,"s":"马克思","f":"马克思逝世纪念日（1883）","t":"mem"},{"m":3,"d":18,"s":"巴黎公社","f":"巴黎公社纪念日（1871 起义）","t":"birth","n":"人类第一个无产阶级政权尝试"},{"m":3,"d":28,"s":"高尔基","f":"高尔基诞辰（1868）","t":"birth","n":"苏联文学奠基人"},{"m":4,"d":22,"s":"列宁","f":"列宁诞辰（1870）","t":"birth"},{"m":4,"d":24,"s":"航天日","f":"中国航天日","t":"birth","n":"1970 东方红一号发射成功"},{"m":5,"d":1,"s":"劳动节","f":"国际劳动节","t":"fest"},{"m":5,"d":4,"s":"青年节","f":"五四青年节（1919）","t":"fest"},{"m":5,"d":5,"s":"马克思","f":"马克思诞辰（1818）","t":"birth"},{"m":5,"d":9,"s":"卫国战争","f":"苏联卫国战争胜利纪念日（1945）","t":"mem"},{"m":5,"d":14,"s":"焦裕禄","f":"焦裕禄纪念日（1964 病逝）","t":"mem","n":"“县委书记的榜样”"},{"m":5,"d":28,"s":"童第周","f":"童第周诞辰（1902）","t":"birth","n":"实验胚胎学奠基人，“中国克隆之父”"},{"m":5,"d":29,"s":"宋庆龄","f":"宋庆龄逝世纪念日（1981）","t":"mem"},{"m":5,"d":30,"s":"五卅","f":"五卅纪念日（1925）","t":"birth","n":"反帝爱国运动"},{"m":6,"d":1,"s":"儿童节","f":"六一儿童节","t":"fest"},{"m":6,"d":3,"s":"虎门销烟","f":"虎门销烟纪念日（1839）","t":"warn","n":"林则徐开始销烟"},{"m":6,"d":25,"s":"邓稼先","f":"邓稼先诞辰（1924）","t":"birth","n":"“两弹元勋”"},{"m":6,"d":26,"s":"禁毒日","f":"国际禁毒日","t":"warn"},{"m":7,"d":1,"s":"建党节","f":"七一建党节","t":"fest"},{"m":7,"d":6,"s":"朱德","f":"朱德逝世纪念日（1976）","t":"mem"},{"m":7,"d":7,"s":"七七","f":"七七抗战警示日（1937）","t":"warn","n":"卢沟桥事变"},{"m":7,"d":11,"s":"邓颖超","f":"邓颖超逝世纪念日（1992）","t":"mem"},{"m":7,"d":15,"s":"秋瑾","f":"秋瑾纪念日（1907 就义）","t":"mem","n":"“鉴湖女侠”，近代民主革命女先驱"},{"m":7,"d":31,"s":"731","f":"731 部队反人类罪行警示日","t":"warn"},{"m":8,"d":1,"s":"建军节","f":"八一建军节（1927 南昌起义）","t":"fest"},{"m":8,"d":2,"s":"赵一曼","f":"赵一曼纪念日（1936 就义）","t":"mem","n":"东北抗日联军女政委"},{"m":8,"d":5,"s":"恩格斯","f":"恩格斯逝世纪念日（1895）","t":"mem"},{"m":8,"d":19,"s":"八一九","f":"苏联八一九事件反思日（1991）","t":"warn"},{"m":9,"d":3,"s":"抗战胜利","f":"中国抗日战争胜利纪念日（1945）","t":"birth"},{"m":9,"d":4,"s":"向警予","f":"向警予诞辰（1895）","t":"birth","n":"中共唯一女创始人，妇女运动领袖"},{"m":9,"d":9,"s":"毛泽东","f":"毛泽东逝世纪念日（1976）","t":"mem"},{"m":9,"d":18,"s":"九一八","f":"九一八警示日（1931）","t":"warn","n":"东北沦陷，多地鸣警报"},{"m":9,"d":25,"s":"鲁迅","f":"鲁迅诞辰（1881）","t":"birth"},{"m":9,"d":30,"s":"烈士纪念","f":"烈士纪念日","t":"mem"},{"m":10,"d":1,"s":"国庆节","f":"十一国庆节","t":"fest"},{"m":10,"d":10,"s":"辛亥革命","f":"辛亥革命纪念日（1911 武昌起义）","t":"birth"},{"m":10,"d":16,"s":"钱三强","f":"钱三强诞辰（1913）","t":"birth","n":"中国原子能科学之父，“两弹一星”元勋"},{"m":10,"d":19,"s":"鲁迅","f":"鲁迅逝世纪念日（1936）","t":"mem"},{"m":10,"d":21,"s":"缪伯英","f":"缪伯英诞辰（1899）","t":"birth","n":"中共第一位女党员"},{"m":10,"d":26,"s":"李四光","f":"李四光诞辰（1889）","t":"birth","n":"中国地质力学创立者"},{"m":11,"d":7,"s":"十月革命","f":"十月革命节（1917）","t":"birth"},{"m":11,"d":12,"s":"华罗庚","f":"华罗庚诞辰（1910）","t":"birth","n":"中国现代数学之父"},{"m":11,"d":12,"s":"白求恩","f":"白求恩纪念日（1939 逝世）","t":"mem"},{"m":11,"d":14,"s":"江竹筠","f":"江竹筠（江姐）纪念日（1949 就义）","t":"mem","n":"红岩英烈代表"},{"m":11,"d":28,"s":"恩格斯","f":"恩格斯诞辰（1820）","t":"birth"},{"m":11,"d":29,"s":"孔繁森","f":"孔繁森纪念日（1994 殉职）","t":"mem","n":"援藏干部楷模"},{"m":12,"d":1,"s":"朱德","f":"朱德诞辰（1886）","t":"birth"},{"m":12,"d":5,"s":"郭永怀","f":"郭永怀纪念日（1968 空难殉职）","t":"mem","n":"“两弹一星”唯一烈士，以生命守护绝密数据"},{"m":12,"d":9,"s":"一二九","f":"一二·九运动纪念日（1935）","t":"birth","n":"北平学生抗日救亡"},{"m":12,"d":11,"s":"钱学森","f":"钱学森诞辰（1911）","t":"birth","n":"中国航天之父、导弹之父"},{"m":12,"d":13,"s":"公祭日","f":"南京大屠杀死难者国家公祭日","t":"mem"},{"m":12,"d":23,"s":"林巧稚","f":"林巧稚诞辰（1901）","t":"birth","n":"中国妇产科学奠基人"},{"m":12,"d":25,"s":"苏联解体","f":"苏联解体反思日（1991）","t":"warn"},{"m":12,"d":26,"s":"毛泽东","f":"毛泽东诞辰（1893）","t":"birth"}],"sampleTerms":{"01-05":"小寒","01-20":"大寒","02-04":"立春","02-18":"雨水","03-05":"惊蛰","03-20":"春分","04-05":"清明","04-20":"谷雨","05-05":"立夏","05-21":"小满","06-05":"芒种","06-21":"夏至","07-07":"小暑","07-23":"大暑","08-07":"立秋","08-23":"处暑","09-07":"白露","09-23":"秋分","10-08":"寒露","10-23":"霜降","11-07":"立冬","11-22":"小雪","12-07":"大雪","12-22":"冬至"}};
+const $ = id => document.getElementById(id);
+const pad2 = n => String(n).padStart(2, '0');
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({
+  '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+}[c]));
+
+const MARK_KEY = 'kaoyan_demo_calendar_marks_v1';
+let marks = new Set();
+try{
+  const raw = JSON.parse(localStorage.getItem(MARK_KEY) || '[]');
+  if(Array.isArray(raw)) marks = new Set(raw.filter(x => typeof x === 'string'));
+}catch(e){}
+function dateKey(y, m, d){ return y + '-' + pad2(m) + '-' + pad2(d); }
+function saveMarks(){
+  try{ localStorage.setItem(MARK_KEY, JSON.stringify([...marks])); }catch(e){}
+}
+
+/* ===== 农历（1900–2100） ===== */
+const LUNAR_INFO = [
+0x04bd8,0x04ae0,0x0a570,0x054d5,0x0d260,0x0d950,0x16554,0x056a0,0x09ad0,0x055d2,
+0x04ae0,0x0a5b6,0x0a4d0,0x0d250,0x1d255,0x0b540,0x0d6a0,0x0ada2,0x095b0,0x14977,
+0x04970,0x0a4b0,0x0b4b5,0x06a50,0x06d40,0x1ab54,0x02b60,0x09570,0x052f2,0x04970,
+0x06566,0x0d4a0,0x0ea50,0x06e95,0x05ad0,0x02b60,0x186e3,0x092e0,0x1c8d7,0x0c950,
+0x0d4a0,0x1d8a6,0x0b550,0x056a0,0x1a5b4,0x025d0,0x092d0,0x0d2b2,0x0a950,0x0b557,
+0x06ca0,0x0b550,0x15355,0x04da0,0x0a5b0,0x14573,0x052b0,0x0a9a8,0x0e950,0x06aa0,
+0x0aea6,0x0ab50,0x04b60,0x0aae4,0x0a570,0x05260,0x0f263,0x0d950,0x05b57,0x056a0,
+0x096d0,0x04dd5,0x04ad0,0x0a4d0,0x0d4d4,0x0d250,0x0d558,0x0b540,0x0b6a0,0x195a6,
+0x095b0,0x049b0,0x0a974,0x0a4b0,0x0b27a,0x06a50,0x06d40,0x0af46,0x0ab60,0x09570,
+0x04af5,0x04970,0x064b0,0x074a3,0x0ea50,0x06b58,0x055c0,0x0ab60,0x096d5,0x092e0,
+0x0c960,0x0d954,0x0d4a0,0x0da50,0x07552,0x056a0,0x0abb7,0x025d0,0x092d0,0x0cab5,
+0x0a950,0x0b4a0,0x0baa4,0x0ad50,0x055d9,0x04ba0,0x0a5b0,0x15176,0x052b0,0x0a930,
+0x07954,0x06aa0,0x0ad50,0x05b52,0x04b60,0x0a6e6,0x0a4e0,0x0d260,0x0ea65,0x0d530,
+0x05aa0,0x076a3,0x096d0,0x04afb,0x04ad0,0x0a4d0,0x1d0b6,0x0d250,0x0d520,0x0dd45,
+0x0b5a0,0x056d0,0x055b2,0x049b0,0x0a577,0x0a4b0,0x0aa50,0x1b255,0x06d20,0x0ada0,
+0x14b63,0x09370,0x049f8,0x04970,0x064b0,0x168a6,0x0ea50,0x06b20,0x1a6c4,0x0aae0,
+0x0a2e0,0x0d2e3,0x0c960,0x0d557,0x0d4a0,0x0da50,0x05d55,0x056a0,0x0a6d0,0x055d4,
+0x052d0,0x0a9b8,0x0a950,0x0b4a0,0x0b6a6,0x0ad50,0x055a0,0x0aba4,0x0a5b0,0x052b0,
+0x0b273,0x06930,0x07337,0x06aa0,0x0ad50,0x14b55,0x04b60,0x0a570,0x054e4,0x0d160,
+0x0e968,0x0d520,0x0daa0,0x16aa6,0x056d0,0x04ae0,0x0a9d4,0x0a2d0,0x0d150,0x0f252,
+0x0d520
+];
+const GAN = '甲乙丙丁戊己庚辛壬癸';
+const ZHI = '子丑寅卯辰巳午未申酉戌亥';
+const ZODIAC = '鼠牛虎兔龙蛇马羊猴鸡狗猪';
+const MONTH_CN = ['正','二','三','四','五','六','七','八','九','十','冬','腊'];
+const NUM_CN = ['一','二','三','四','五','六','七','八','九','十'];
+
+function leapMonth(y){ return LUNAR_INFO[y - 1900] & 0xf; }
+function leapDays(y){
+  if(!leapMonth(y)) return 0;
+  return (LUNAR_INFO[y - 1900] & 0x10000) ? 30 : 29;
+}
+function monthDays(y, m){
+  return (LUNAR_INFO[y - 1900] & (0x10000 >> m)) ? 30 : 29;
+}
+function yearDays(y){
+  let sum = 348;
+  for(let i = 0x8000; i > 0x8; i >>= 1){
+    sum += (LUNAR_INFO[y - 1900] & i) ? 1 : 0;
+  }
+  return sum + leapDays(y);
+}
+function dayName(d){
+  if(d === 10) return '初十';
+  if(d === 20) return '二十';
+  if(d === 30) return '三十';
+  const tens = Math.floor(d / 10);
+  const unit = d % 10;
+  const pre = ['初','十','廿','三'][tens];
+  return pre + NUM_CN[unit - 1];
+}
+function solar2lunar(y, m, d){
+  if(y < 1900 || y > 2100) return null;
+  let offset = Math.round((Date.UTC(y, m - 1, d) - Date.UTC(1900, 0, 31)) / 86400000);
+  let i, temp = 0;
+  for(i = 1900; i < 2101 && offset > 0; i++){
+    temp = yearDays(i);
+    offset -= temp;
+  }
+  if(offset < 0){ offset += temp; i--; }
+  const year = i;
+  const leap = leapMonth(year);
+  let isLeap = false;
+  for(i = 1; i < 13 && offset > 0; i++){
+    if(leap > 0 && i === leap + 1 && !isLeap){
+      --i; isLeap = true; temp = leapDays(year);
+    } else {
+      temp = monthDays(year, i);
+    }
+    if(isLeap && i === leap + 1) isLeap = false;
+    offset -= temp;
+  }
+  if(offset === 0 && leap > 0 && i === leap + 1){
+    if(isLeap){ isLeap = false; }
+    else { isLeap = true; --i; }
+  }
+  if(offset < 0){ offset += temp; --i; }
+  const month = i;
+  const day = offset + 1;
+  const gz = (year - 4) % 60;
+  return {
+    y: year, m: month, d: day, isLeap,
+    monthCn: (isLeap ? '闰' : '') + MONTH_CN[month - 1] + '月',
+    dayCn: dayName(day),
+    text: GAN.charAt(gz % 10) + ZHI.charAt(gz % 12) + '年 ' +
+          (isLeap ? '闰' : '') + MONTH_CN[month - 1] + '月' + dayName(day)
+  };
+}
+function lunarShort(y, m, d){
+  const l = solar2lunar(y, m, d);
+  if(!l) return '';
+  if(l.d === 1) return l.monthCn;
+  return l.dayCn;
+}
+
+/* ===== 二十四节气 ===== */
+const TERM_NAMES = ['春分','清明','谷雨','立夏','小满','芒种','夏至','小暑','大暑','立秋',
+                    '处暑','白露','秋分','寒露','霜降','立冬','小雪','大雪','冬至','小寒',
+                    '大寒','立春','雨水','惊蛰'];
+function sunLongitude(jd){
+  const T = (jd - 2451545.0) / 36525;
+  const L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T;
+  const M = 357.52911 + 35999.05029 * T - 0.0001537 * T * T;
+  const Mr = M * Math.PI / 180;
+  const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(Mr)
+        + (0.019993 - 0.000101 * T) * Math.sin(2 * Mr)
+        + 0.000289 * Math.sin(3 * Mr);
+  const omega = (125.04 - 1934.136 * T) * Math.PI / 180;
+  const lambda = L0 + C - 0.00569 - 0.00478 * Math.sin(omega);
+  return ((lambda % 360) + 360) % 360;
+}
+function julianDay(y, m, d){
+  if(m <= 2){ y -= 1; m += 12; }
+  const A = Math.floor(y / 100);
+  const B = 2 - A + Math.floor(A / 4);
+  return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5;
+}
+const termCache = {};
+function termsOfYear(year){
+  if(termCache[year]) return termCache[year];
+  const map = {};
+  const jd0 = julianDay(year, 1, 1) - 2;
+  const jdEnd = julianDay(year + 1, 1, 1) - 1;
+  let prev = sunLongitude(jd0);
+  for(let k = 1; jd0 + k <= jdEnd; k++){
+    const jd = jd0 + k;
+    const lon = sunLongitude(jd);
+    let diff = lon - prev;
+    if(diff < 0) diff += 360;
+    if(diff > 0 && diff < 5){
+      const start = Math.ceil(prev / 15) * 15;
+      for(let a = start; a < prev + diff + 1e-9; a += 15){
+        let frac = (a - prev) / diff;
+        if(frac < 0) frac = 0;
+        if(frac > 1) frac = 1;
+        const jdx = jd0 + k - 1 + frac;
+        const dt = new Date((jdx - 2440587.5 + 8 / 24) * 86400000);
+        const mm = dt.getUTCMonth() + 1, dd = dt.getUTCDate();
+        const lonIdx = Math.round((((a % 360) + 360) % 360) / 15) % 24;
+        map[pad2(mm) + '-' + pad2(dd)] = TERM_NAMES[lonIdx];
+      }
+    }
+    prev = lon;
+  }
+  termCache[year] = map;
+  return map;
+}
+
+/* ===== 标注 ===== */
+function typeInfo(t){
+  return (DATA.types && DATA.types[t]) || { label: t || '标注', color: '#8C8577', bg: '#F7F1E6' };
+}
+function eventsOf(y, m, d, L){
+  const out = [];
+  const md = pad2(m) + '-' + pad2(d);
+  const term = termsOfYear(y)[md];
+  if(term) out.push({ s: term, f: term, t: 'term' });
+  for(const e of DATA.solarEvents){
+    if(e.m === m && e.d === d) out.push(e);
+  }
+  if(L && !L.isLeap){
+    for(const e of DATA.lunarEvents){
+      if(e.m === L.m && e.d === L.d) out.push(e);
+    }
+  }
+  const rank = DATA.rank || {};
+  out.sort((a, b) => (rank[a.t] ?? 9) - (rank[b.t] ?? 9));
+  return out;
+}
+
+/* ===== 渲染 ===== */
+const now0 = new Date();
+let viewY = now0.getFullYear();
+let viewM = now0.getMonth() + 1;
+let selY = viewY, selM = viewM, selD = now0.getDate();
+
+function render(){
+  $('calMonth').textContent = viewY + '年' + viewM + '月';
+  const start = (new Date(viewY, viewM - 1, 1).getDay() + 6) % 7;
+  const days = new Date(viewY, viewM, 0).getDate();
+  const now = new Date();
+  const cells = [];
+  for(let i = 0; i < start; i++) cells.push('<div class="cal-day blank"></div>');
+  for(let d = 1; d <= days; d++){
+    const L = solar2lunar(viewY, viewM, d);
+    const ev = eventsOf(viewY, viewM, d, L);
+    const top = ev[0];
+    const label = top ? top.s : (L ? lunarShort(viewY, viewM, d) : '');
+    const cls = top ? 'ev-' + top.t : 'lunar';
+    const isToday = viewY === now.getFullYear() && viewM === now.getMonth() + 1 && d === now.getDate();
+    const isSel = viewY === selY && viewM === selM && d === selD;
+    const marked = marks.has(dateKey(viewY, viewM, d));
+    const dot = ev.length > 1 ? '<i class="cal-dot"></i>' : '';
+    cells.push(
+      '<button type="button" class="cal-day' + (isToday ? ' today' : '') + (isSel ? ' sel' : '') +
+      (marked ? ' marked' : '') +
+      '" data-y="' + viewY + '" data-m="' + viewM + '" data-d="' + d + '">' +
+      '<span class="num">' + d + '</span>' +
+      '<span class="lbl ' + cls + '">' + esc(label) + '</span>' +
+      (marked ? '<i class="cal-mark"></i>' : '') + dot + '</button>'
+    );
+  }
+  $('calGrid').innerHTML = cells.join('');
+  renderDetail();
+}
+
+function renderDetail(){
+  const L = solar2lunar(selY, selM, selD);
+  const ev = eventsOf(selY, selM, selD, L);
+  const dt = new Date(selY, selM - 1, selD);
+  const week = ['日','一','二','三','四','五','六'][dt.getDay()];
+  let h = '<div class="cal-dhead"><b>' + selY + '年' + selM + '月' + selD + '日</b>' +
+          '<span>星期' + week + (L ? ' · ' + esc(L.text) : '') + '</span></div>';
+  const mk = dateKey(selY, selM, selD);
+  const marked = marks.has(mk);
+  h += '<div class="cal-mark-row"><button class="cal-mark-btn' + (marked ? ' on' : '') +
+       '" id="calMarkBtn" type="button" aria-pressed="' + (marked ? 'true' : 'false') + '">' +
+       (marked ? '取消红圈' : '红圈标注') + '</button><small>红圈保存在本机</small></div>';
+  if(!ev.length){
+    h += '<div class="cal-empty">这一天没有标注。</div>';
+  }else{
+    h += '<div class="cal-evs">';
+    for(const e of ev){
+      const ti = typeInfo(e.t);
+      h += '<div class="cal-ev">' +
+           '<span class="cal-tag" style="color:' + ti.color + ';background:' + ti.bg + '">' + esc(ti.label) + '</span>' +
+           '<div class="cal-ev-main"><b>' + esc(e.f || e.s) + '</b>' +
+           (e.n ? '<small>' + esc(e.n) + '</small>' : '') + '</div></div>';
+    }
+    h += '</div>';
+  }
+  $('calDetail').innerHTML = h;
+}
+
+function openCal(){
+  const t = document.getElementById('timerOverlay');
+  if(t) t.classList.remove('show');
+  const n = new Date();
+  viewY = n.getFullYear();
+  viewM = n.getMonth() + 1;
+  selY = viewY; selM = viewM; selD = n.getDate();
+  render();
+  $('calOverlay').classList.add('show');
+}
+function closeCal(){ $('calOverlay').classList.remove('show'); }
+
+$('calBtn').addEventListener('click', openCal);
+$('calClose').addEventListener('click', closeCal);
+$('calOverlay').addEventListener('click', e => { if(e.target === $('calOverlay')) closeCal(); });
+$('calPrev').addEventListener('click', () => {
+  viewM--;
+  if(viewM < 1){ viewM = 12; viewY--; }
+  selY = viewY; selM = viewM; selD = 1;
+  render();
+});
+$('calNext').addEventListener('click', () => {
+  viewM++;
+  if(viewM > 12){ viewM = 1; viewY++; }
+  selY = viewY; selM = viewM; selD = 1;
+  render();
+});
+$('calToday').addEventListener('click', () => {
+  const n = new Date();
+  viewY = n.getFullYear(); viewM = n.getMonth() + 1;
+  selY = viewY; selM = viewM; selD = n.getDate();
+  render();
+});
+$('calGrid').addEventListener('click', e => {
+  const b = e.target.closest('.cal-day[data-d]');
+  if(!b) return;
+  selY = +b.dataset.y; selM = +b.dataset.m; selD = +b.dataset.d;
+  render();
+});
+$('calDetail').addEventListener('click', e => {
+  if(!e.target.closest('#calMarkBtn')) return;
+  const key = dateKey(selY, selM, selD);
+  if(marks.has(key)) marks.delete(key); else marks.add(key);
+  saveMarks();
+  render();
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && $('calOverlay').classList.contains('show')) closeCal();
+});
+})();
+
+</script>
+<script>
+(function(){
+'use strict';
+
+const KEY = 'kaoyan_demo_study_timer_v1';
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2, '0');
+
+function todayKey(){
+  const d = new Date();
+  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+}
+function fmt(sec){
+  sec = Math.max(0, Math.floor(Number(sec) || 0));
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = sec % 60;
+  return pad(h) + ':' + pad(m) + ':' + pad(s);
+}
+function load(){
+  try{
+    const o = JSON.parse(localStorage.getItem(KEY) || '{}');
+    return {
+      date: o.date || todayKey(),
+      today: Number(o.today) || 0,
+      total: Number(o.total) || 0,
+      paused: !!o.paused
+    };
+  }catch(e){
+    return { date: todayKey(), today: 0, total: 0, paused: false };
+  }
+}
+function save(){
+  try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){}
+}
+
+const state = load();
+if(state.date !== todayKey()){
+  state.date = todayKey();
+  state.today = 0;
+}
+let session = 0;
+let last = Date.now();
+let visible = !document.hidden;
+let lastSave = 0;
+
+function flush(){
+  const now = Date.now();
+  if(!state.paused && visible){
+    const d = Math.floor((now - last) / 1000);
+    if(d > 0){
+      session += d;
+      state.today += d;
+      state.total += d;
+    }
+  }
+  last = now;
+}
+function render(){
+  if(!$('timerOverlay').classList.contains('show')) return;
+  $('timerToday').textContent = fmt(state.today);
+  $('timerSession').textContent = fmt(session);
+  $('timerTotal').textContent = fmt(state.total);
+  $('timerStatus').textContent = state.paused ? '已暂停' : '计时中';
+  $('timerStatus').classList.toggle('paused', state.paused);
+  $('timerToggle').textContent = state.paused ? '继续' : '暂停';
+}
+function syncBtn(){
+  $('timerBtn').classList.toggle('paused', state.paused);
+}
+
+function tick(){
+  const t = todayKey();
+  if(t !== state.date){
+    flush();
+    state.date = t;
+    state.today = 0;
+  }
+  flush();
+  const now = Date.now();
+  if(now - lastSave > 5000){
+    save();
+    lastSave = now;
+  }
+  render();
+}
+
+setInterval(tick, 1000);
+document.addEventListener('visibilitychange', () => {
+  flush();
+  visible = !document.hidden;
+  last = Date.now();
+  save();
+  render();
+});
+window.addEventListener('pagehide', () => { flush(); save(); });
+window.addEventListener('beforeunload', () => { flush(); save(); });
+
+function openTimer(){
+  const c = document.getElementById('calOverlay');
+  if(c) c.classList.remove('show');
+  render();
+  $('timerOverlay').classList.add('show');
+}
+function closeTimer(){ $('timerOverlay').classList.remove('show'); }
+
+$('timerBtn').addEventListener('click', openTimer);
+$('timerClose').addEventListener('click', closeTimer);
+$('timerOverlay').addEventListener('click', e => {
+  if(e.target === $('timerOverlay')) closeTimer();
+});
+$('timerToggle').addEventListener('click', () => {
+  flush();
+  state.paused = !state.paused;
+  last = Date.now();
+  save();
+  syncBtn();
+  render();
+});
+$('timerReset').addEventListener('click', () => {
+  if(!confirm('把今天的学习时间清零？')) return;
+  flush();
+  state.today = 0;
+  session = 0;
+  last = Date.now();
+  save();
+  render();
+});
+document.addEventListener('keydown', e => {
+  if(e.key === 'Escape' && $('timerOverlay').classList.contains('show')) closeTimer();
+});
+
+syncBtn();
+})();
+
+</script>
+</body>
+</html>
